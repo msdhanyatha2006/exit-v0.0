@@ -1,0 +1,148 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: black;
+    font-family: Arial, sans-serif;
+}
+
+.background-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    /* ADD YOUR IMAGE FILENAME HERE */
+    background-image: url('firstpg.png'); 
+    background-size: cover;
+    background-position: center;
+}
+
+#matrixCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.6; /* So the background image shows through */
+}
+
+.content-overlay {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.1); /* Darkens the image slightly */
+}
+
+.main-title {
+    font-family: 'Creepster', cursive;
+    font-size: 100px;
+    color: white;
+    margin: 0;
+    letter-spacing: 15px;
+    
+    /* Reduced, more subtle glow */
+    text-shadow: 
+        0 0 8px #ff4500,        /* Tight orange glow */
+        0 0 15px rgba(255, 69, 0, 0.5), /* Faded outer glow */
+        5px 10px 15px black;    /* Maintain depth shadow */
+        
+    /* Slower, gentler pulse */
+    animation: glowPulse 4s infinite ease-in-out;
+}
+
+/* Gentler pulse animation */
+@keyframes glowPulse {
+    0%, 100% { 
+        text-shadow: 0 0 8px #ff4500, 0 0 15px rgba(255, 69, 0, 0.5), 5px 10px 15px black; 
+    }
+    50% { 
+        text-shadow: 0 0 12px #ff6347, 0 0 20px rgba(255, 99, 71, 0.6), 5px 10px 15px black; 
+    }
+}
+
+.subtitle {
+    color: #ff9d6c;
+    font-size: 20px;
+    letter-spacing: 5px;
+    margin-top: -10px;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px black;
+}
+
+.rules-box {
+    background: rgba(20, 10, 5, 0.85);
+    border: 1px solid #ff4500;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 800px;
+    padding: 20px;
+    box-shadow: 0 0 30px rgba(255, 69, 0, 0.3);
+}
+
+.rules-header {
+    color: #ff4500;
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
+    letter-spacing: 3px;
+}
+
+.rules-content {
+    color: #e0e0e0;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 15px;
+    line-height: 1.6;
+}
+
+.rules-content p { color: #ff9d6c; margin-bottom: 5px; }
+.rules-content ul { margin-top: 0; padding-left: 20px; }
+
+/* Custom Scrollbar for the rules box */
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #ff4500;
+    border-radius: 10px;
+}
+
+.start-btn {
+    display: block;
+    margin: 25px auto 0;
+    padding: 12px 60px;
+    background: linear-gradient(to right, #cc3300, #ff4500);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    transition: 0.3s;
+    letter-spacing: 2px;
+}
+
+.start-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #ff4500;
+}
+/* room_style.css */
+body {
+    background-color: black;
+    animation: roomEntrance 1.5s ease-out forwards;
+}
+
+@keyframes roomEntrance {
+    from { 
+        opacity: 0; 
+        transform: scale(1.1); /* Creates a subtle 'moving forward' effect */
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+}

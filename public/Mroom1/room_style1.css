@@ -1,0 +1,331 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root {
+    --horror-green: #d4f7a1;
+    --neon-glow: 0 0 15px rgba(212, 247, 161, 0.6), 0 0 25px rgba(136, 176, 75, 0.4);
+    --glass-dark: rgba(0, 15, 5, 0.85);
+    --neon-red: #ff003c;
+}
+
+body, html {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #000; overflow: hidden; font-family: 'Share Tech Mono', monospace;
+}
+
+#game-container {
+    position: relative; width: 100vw; height: 100vh;
+    background: url('Image1.jpg') no-repeat center center;
+    background-size: cover;
+}
+
+/* Precision Hotspots */
+.hotspot { position: absolute; cursor: pointer; z-index: 5; }
+#robot-trigger  { top: 30%; left: 40%; width: 5%; height: 15%; }
+#fridge-trigger { top: 75%; left: 56%; width: 13%; height: 22%; }
+#vr-trigger     { top: 67%; left: 60%; width: 8%; height: 10%; }
+#note-trigger   { top: 40%; left: 74%; width: 3%; height: 5%; }
+#guitar-trigger { top: 55%; left: 90%; width: 9%; height: 35%; }
+#pot-trigger    { top: 62%; left: 1%; width: 12%; height: 55%; bottom: 10%;}
+
+/* Advanced UI: Horror Glow Typography */
+.horror-title {
+    color: var(--horror-green);
+    text-shadow: var(--neon-glow);
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.red-glow {
+    color: var(--neon-red);
+    text-shadow: 0 0 15px var(--neon-red), 0 0 25px rgba(255, 0, 60, 0.4);
+}
+
+/* Big Sur Glassmorphism Questioning Frame */
+.pro-glass-panel {
+    background: var(--glass-dark);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid rgba(212, 247, 161, 0.2);
+    padding: 45px;
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+    text-align: center;
+}
+
+/* Advanced Buttons (Calculator Style) */
+.advanced-numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.shapes-container { display: flex; gap: 15px; justify-content: center; }
+
+.pro-btn {
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.4));
+    border: 1px solid rgba(212, 247, 161, 0.2);
+    color: var(--horror-green);
+    padding: 18px;
+    font-size: 1.4rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pro-btn:hover {
+    background: var(--horror-green);
+    color: #000;
+    box-shadow: var(--neon-glow);
+    transform: translateY(-3px) scale(1.05);
+}
+
+/* Overlay & Modals */
+.overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+    display: none; justify-content: center; align-items: center; z-index: 100;
+}
+.overlay.active { display: flex; }
+.overlay-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+
+.display-led {
+    font-size: 3.5rem;
+    color: var(--horror-green);
+    text-shadow: var(--neon-glow);
+    margin-bottom: 25px;
+    letter-spacing: 10px;
+}
+
+.pro-input {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--horror-green);
+    color: var(--horror-green);
+    padding: 15px;
+    text-align: center;
+    font-size: 1.6rem;
+    border-radius: 8px;
+    outline: none;
+    width: 300px;
+    height: 200px;
+}
+
+.pro-back-btn {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(145deg, #120000, #2b0a00);
+    border: 1px solid #ff4500;
+    color: #ff8c00;
+    padding: 12px 45px;
+    border-radius: 40px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 10px rgba(255, 69, 0, 0.15);
+    z-index: 110;
+}
+
+.pro-back-btn:hover {
+    background: linear-gradient(145deg, #ff4500, #ff0000);
+    color: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 25px #ff4500, 0 0 45px #ff0000;
+    transform: translateX(-50%) translateY(-3px) scale(1.05);
+}
+
+.pro-back-btn:active {
+    transform: translateX(-50%) translateY(-1px) scale(0.98);
+}
+
+/* VR Dots */
+.dot { width: 55px; height: 55px; border-radius: 50%; display: inline-block; margin: 10px; cursor: pointer; transition: 0.3s; }
+.dot:hover { transform: scale(1.2); }
+.yel-glow { background: #f1c40f; box-shadow: 0 0 15px #f1c40f; }
+.blu-glow { background: #2980b9; box-shadow: 0 0 15px #2980b9; }
+.grn-glow { background: #27ae60; box-shadow: 0 0 15px #27ae60; }
+.org-glow { background: #e67e22; box-shadow: 0 0 15px #e67e22; }
+
+/* Riddle & Success Panels */
+.riddle-panel {
+    border-radius: 20px;
+    display: none; position: absolute; bottom: 320px;
+    background:linear-gradient(145deg, #00f3ff, #0077ff);; border: 1px solid var(--horror-blue);
+    padding: 25px; width: 65%; text-align: center; font-size: 1.2rem;
+    box-shadow: var(--blue-glow);
+}
+
+.clarity-box { display: none; border: 2px solid white; background: #000; padding: 10px; }
+.clarity-box img { width: 280px; }
+
+#notification {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    background: var(--neon-red); padding: 10px 40px; display: none; z-index: 200;
+    box-shadow: 0 0 20px var(--neon-red);
+}
+
+#score-board { position: fixed; top: 30px; right: 50px; color: var(--horror-green); font-size: 1.8rem; z-index: 10; text-shadow: var(--neon-glow); }
+
+#note-trigger {
+    top: 40%;
+    left: 74%;
+    width: 3%;
+    height: 10%;
+}
+
+/* --- Final Transparent Glassy UI --- */
+.pro-glass-panel {
+    background:linear-gradient(145deg, #150e44ad, #1751547e); border: 1px solid var(--horror-blue);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.125);
+    border-radius: 28px;
+    padding: 40px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+    text-align: center;
+    transition: all 0.4s ease;
+}
+.glass-panel {
+    background:linear-gradient(145deg, #0c072fe3, #0e363896); border: 1px solid var(--horror-blue);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.125);
+    border-radius: 28px;
+    padding: 40px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+    text-align: center;
+    transition: all 0.4s ease;
+}
+
+/* --- Typography as per Image Reference --- */
+.horror-title {
+    color: #ffffff;
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6);
+    font-style: fantasy;
+}
+
+.horror-subtext {
+    color: #00ccff;
+    font-size: 1.15rem;
+    line-height: 1.5;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.615);
+    margin-bottom: 15px;
+}
+
+.horror-hint {
+    color: #ff00b3;
+    font-style: italic;
+    font-size: 0.95rem;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.615);
+    margin-bottom: 25px;
+}
+
+/* --- Submit Button with Red-Purple Gradient --- */
+.pro-submit-btn {
+    width: 100%;
+    background: linear-gradient(90deg, #e60073, #8a2be2);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    padding: 18px;
+    font-size: 1.4rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(230, 0, 115, 0.3);
+    transition: all 0.3s ease;
+}
+
+.pro-submit-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(230, 0, 115, 0.6);
+}
+
+.robo-subtitle {
+    color: #00ddff;
+    font-size: 1.2rem;
+    margin-top: -10px;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(0, 157, 255, 0.6);
+    font-family:'Courier New', Courier, monospace;
+}
+
+.clarity-box {
+    display: none;
+    border: 2px solid white;
+    background: #000;
+    padding: 10px;
+}
+
+/* Styling for the Red Hint Button in the Right Corner */
+.hint {
+    position: relative;
+    background: linear-gradient(145deg, #0f0a326c, #1a5a5d52);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.125);
+    border-radius: 28px;
+    padding: 40px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+    text-align: center;
+    transition: all 0.4s ease;
+}
+
+.hint-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(150, 0, 0, 0.4);
+    border: 1px solid #ff0000;
+    color: #ff0000;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.hint-btn:hover {
+    background: #ff0000;
+    color: #fff;
+    box-shadow: 0 0 15px #ff0000;
+    transform: scale(1.05);
+}
+
+#vr-success {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid white;
+    background: #000;
+    padding: 10px;
+    z-index: 105;
+}
+
+#vr-success img {
+    width: 450px;
+    max-width: 80vw;
+}
+
+#gt-success {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid white;
+    background: #000;
+    padding: 10px;
+    z-index: 105;
+}

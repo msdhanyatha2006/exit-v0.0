@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel × EXIT-VO.O — Conductor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --void:#01020a; --dark:#060810; --card:rgba(4,10,28,.97);
+      --cyan:#00d4ff; --gold:#e8c56a; --green:#00ff88; --red:#ff4466;
+      --purple:#a855f7; --orange:#f97316;
+      --tx1:#dce8f8; --tx2:rgba(79,120,170,.7); --border:rgba(0,212,255,.12);
+    }
+    html { background:var(--void); color:var(--tx1); font-family:'Rajdhani',sans-serif; min-height:100%; }
+    body { padding:0; min-height:100vh; }
+
+    .scanlines { position:fixed; inset:0; z-index:0; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px); }
+
+    /* ── TOPBAR ── */
+    #topbar { position:sticky; top:0; z-index:100; height:50px; display:flex;
+      align-items:center; gap:18px; padding:0 22px;
+      background:linear-gradient(90deg,rgba(0,0,0,.99),rgba(6,3,18,.99));
+      border-bottom:1px solid var(--border);
+      font-family:'Share Tech Mono',monospace; font-size:.62rem; letter-spacing:2px; }
+    .tb-brand { color:var(--cyan); font-size:.72rem;
+      text-shadow:0 0 14px rgba(0,212,255,.4); white-space:nowrap; }
+    .tb-sep { color:var(--border); }
+    .tb-stat { color:var(--tx2); }
+    .tb-stat span { color:var(--cyan); font-size:.75rem; }
+    .tb-stat span.green  { color:var(--green); }
+    .tb-stat span.gold   { color:var(--gold); }
+    .tb-stat span.purple { color:var(--purple); }
+    #conn-dot { width:7px; height:7px; border-radius:50%; background:var(--green);
+      box-shadow:0 0 8px rgba(0,255,136,.7); animation:blink 1.4s ease-in-out infinite; flex-shrink:0; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .tb-right { margin-left:auto; display:flex; align-items:center; gap:14px; }
+    #topbar-clock { color:var(--tx2); font-size:.62rem; }
+
+    /* ── MAIN GRID ── */
+    #main { position:relative; z-index:1; display:grid;
+      grid-template-columns:1fr 400px; gap:16px; padding:16px 22px;
+      min-height:calc(100vh - 50px); }
+
+    /* ── PANEL ── */
+    .panel { background:var(--card); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+    .panel-head { padding:13px 18px; display:flex; align-items:center; gap:10px;
+      border-bottom:1px solid var(--border); font-family:'Share Tech Mono',monospace;
+      font-size:.62rem; letter-spacing:3px; color:var(--tx2); }
+    .panel-head .dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+    .dot.cyan   { background:var(--cyan);   box-shadow:0 0 7px rgba(0,212,255,.6); }
+    .dot.gold   { background:var(--gold);   box-shadow:0 0 7px rgba(232,197,106,.6); }
+    .dot.green  { background:var(--green);  box-shadow:0 0 7px rgba(0,255,136,.6); }
+    .dot.red    { background:var(--red);    box-shadow:0 0 7px rgba(255,68,102,.6); }
+    .dot.purple { background:var(--purple); box-shadow:0 0 7px rgba(168,85,247,.6); }
+    .panel-body { padding:16px 18px; }
+    .panel-head-actions { margin-left:auto; display:flex; gap:8px; }
+
+    /* ── BUTTONS ── */
+    .btn { padding:8px 18px; border:1px solid; border-radius:3px;
+      font-family:'Share Tech Mono',monospace; font-size:.6rem; font-weight:700;
+      letter-spacing:2px; cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .btn-cyan  { background:rgba(0,212,255,.08); border-color:var(--cyan);  color:var(--cyan); }
+    .btn-cyan:hover  { background:var(--cyan);  color:#000; box-shadow:0 0 18px rgba(0,212,255,.3); }
+    .btn-red   { background:rgba(255,68,102,.08); border-color:var(--red);  color:var(--red); }
+    .btn-red:hover   { background:var(--red);   color:#fff; box-shadow:0 0 18px rgba(255,68,102,.3); }
+    .btn-gold  { background:rgba(232,197,106,.08); border-color:var(--gold); color:var(--gold); }
+    .btn-gold:hover  { background:var(--gold);  color:#000; box-shadow:0 0 18px rgba(232,197,106,.3); }
+    .btn-green { background:rgba(0,255,136,.08); border-color:var(--green); color:var(--green); }
+    .btn-green:hover { background:var(--green); color:#000; box-shadow:0 0 18px rgba(0,255,136,.3); }
+    .btn-sm { padding:5px 11px; font-size:.56rem; letter-spacing:1.5px; }
+    .btn-xs { padding:3px 8px; font-size:.52rem; letter-spacing:1px; }
+
+    /* ── OVERVIEW STATS STRIP ── */
+    #overview { margin-bottom:16px; }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .stat-box { background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.05);
+      border-radius:3px; padding:14px 12px; text-align:center; }
+    .stat-val { font-family:'Share Tech Mono',monospace; font-size:1.8rem; font-weight:700;
+      line-height:1; margin-bottom:6px; }
+    .stat-val.cyan   { color:var(--cyan);   text-shadow:0 0 14px rgba(0,212,255,.4); }
+    .stat-val.green  { color:var(--green);  text-shadow:0 0 14px rgba(0,255,136,.4); }
+    .stat-val.gold   { color:var(--gold);   text-shadow:0 0 14px rgba(232,197,106,.4); }
+    .stat-val.purple { color:var(--purple); text-shadow:0 0 14px rgba(168,85,247,.4); }
+    .stat-lbl { font-family:'Share Tech Mono',monospace; font-size:.52rem;
+      letter-spacing:2.5px; color:var(--tx2); }
+
+    /* ── GAME STATUS BAR ── */
+    #game-info-bar { display:flex; align-items:center; gap:12px;
+      padding:10px 14px; background:rgba(0,255,136,.04); border:1px solid rgba(0,255,136,.14);
+      border-radius:3px; margin-bottom:16px; flex-wrap:wrap; }
+    .gi-tag { font-family:'Share Tech Mono',monospace; font-size:.56rem; letter-spacing:2px; }
+    .gi-tag.active { color:var(--green); }
+    .gi-game { font-family:'Share Tech Mono',monospace; font-size:.68rem; color:var(--tx1); letter-spacing:1px; }
+    .gi-sep { color:var(--border); }
+    #gi-timer { font-family:'Share Tech Mono',monospace; font-size:.68rem; color:var(--cyan); letter-spacing:2px; margin-left:auto; }
+
+    /* ── STUDENT CARDS ── */
+    #student-list { display:flex; flex-direction:column; gap:12px; }
+    .s-card { background:rgba(6,10,28,.8); border:1px solid rgba(0,212,255,.08);
+      border-radius:3px; padding:13px 15px; border-left:3px solid rgba(0,212,255,.3);
+      transition:border-color .2s; }
+    .s-card.offline    { opacity:.5; border-left-color:rgba(79,120,170,.3); }
+    .s-card.terminated { border-left-color:var(--red); opacity:.6; }
+    .s-card.flagged    { border-left-color:var(--red); background:rgba(255,68,102,.04); }
+    .s-card.done       { border-left-color:var(--gold); }
+    .s-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px; }
+    .s-name { font-family:'Share Tech Mono',monospace; font-size:.76rem; color:var(--tx1); letter-spacing:1px; }
+    .s-usn  { font-size:.6rem; color:var(--tx2); letter-spacing:1.5px; margin-top:2px; }
+    .s-meta { font-family:'Share Tech Mono',monospace; font-size:.52rem;
+      letter-spacing:1.5px; color:var(--tx2); margin-top:3px; }
+    .s-status { font-family:'Share Tech Mono',monospace; font-size:.52rem; letter-spacing:2px; }
+    .s-status.online     { color:var(--green); }
+    .s-status.offline    { color:var(--tx2); }
+    .s-status.terminated { color:var(--red); }
+    .s-actions { display:flex; gap:5px; }
+
+    /* Room progress mini-bar */
+    .s-prog-wrap { margin-bottom:9px; }
+    .s-prog-label { font-family:'Share Tech Mono',monospace; font-size:.52rem;
+      letter-spacing:2px; color:var(--tx2); margin-bottom:5px; display:flex;
+      justify-content:space-between; align-items:center; }
+    .s-prog-pips { display:flex; gap:4px; }
+    .s-pip { flex:1; height:3px; border-radius:2px; background:rgba(0,212,255,.08); transition:background .3s; }
+    .s-pip.done    { background:var(--gold); box-shadow:0 0 4px rgba(232,197,106,.4); }
+    .s-pip.current { background:var(--cyan); box-shadow:0 0 4px rgba(0,212,255,.4); }
+
+    .viol-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:8px; }
+    .viol-box { text-align:center; padding:7px 5px; background:rgba(0,0,0,.3);
+      border-radius:3px; border:1px solid rgba(255,255,255,.04); cursor:pointer;
+      transition:border-color .2s; }
+    .viol-box:hover { border-color:rgba(0,212,255,.2); }
+    .viol-num { font-family:'Share Tech Mono',monospace; font-size:1.2rem;
+      font-weight:700; color:var(--cyan); text-shadow:0 0 10px rgba(0,212,255,.4); }
+    .viol-num.danger { color:var(--red); text-shadow:0 0 10px rgba(255,68,102,.5); }
+    .viol-lbl { font-family:'Share Tech Mono',monospace; font-size:.48rem; letter-spacing:2px; color:var(--tx2); }
+
+    .score-badge { font-family:'Share Tech Mono',monospace; font-size:.6rem;
+      padding:3px 8px; border-radius:2px;
+      background:rgba(0,255,136,.08); border:1px solid rgba(0,255,136,.2);
+      color:var(--gold); letter-spacing:1px; margin-top:4px; display:inline-block; }
+
+    .audit-log { display:none; margin-top:7px; padding:9px; background:rgba(0,0,0,.4);
+      border-radius:3px; max-height:120px; overflow-y:auto;
+      font-family:'Share Tech Mono',monospace; font-size:.56rem; line-height:1.7; color:var(--tx2); }
+    .audit-log::-webkit-scrollbar { width:3px; }
+    .audit-log::-webkit-scrollbar-thumb { background:rgba(0,212,255,.2); border-radius:2px; }
+    .alog-time { color:rgba(0,212,255,.4); margin-right:6px; }
+
+    .no-students { text-align:center; padding:40px 20px;
+      font-family:'Share Tech Mono',monospace; font-size:.62rem; letter-spacing:2px; color:var(--tx2); }
+
+    /* ── LEADERBOARD PANEL ── */
+    #lb-panel { position:sticky; top:66px; max-height:calc(100vh - 78px);
+      display:flex; flex-direction:column; overflow:hidden; }
+    #lb-scroll { flex:1; overflow-y:auto; }
+    #lb-scroll::-webkit-scrollbar { width:4px; }
+    #lb-scroll::-webkit-scrollbar-thumb { background:rgba(0,212,255,.2); border-radius:2px; }
+
+    /* Leaderboard table */
+    .lb-table { width:100%; border-collapse:collapse; }
+    .lb-table th { font-family:'Share Tech Mono',monospace; font-size:.5rem;
+      letter-spacing:2.5px; color:var(--tx2); text-align:left; padding:8px 10px;
+      border-bottom:1px solid var(--border); white-space:nowrap; }
+    .lb-table th:last-child, .lb-table td:last-child { text-align:right; }
+    .lb-row td { padding:9px 10px; font-family:'Share Tech Mono',monospace;
+      font-size:.65rem; border-bottom:1px solid rgba(255,255,255,.03); vertical-align:middle; }
+    .lb-row:hover td { background:rgba(0,212,255,.03); cursor:pointer; }
+    .lb-row.expanded td { background:rgba(0,212,255,.02); }
+    .lb-rank { color:var(--tx2); font-size:.58rem; width:26px; }
+    .lb-rank.gold   { color:var(--gold); font-size:.85rem; }
+    .lb-rank.silver { color:#c0c8d8; font-size:.85rem; }
+    .lb-rank.bronze { color:#c87941; font-size:.85rem; }
+    .lb-name { color:var(--tx1); max-width:88px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .lb-usn  { color:var(--tx2); font-size:.55rem; }
+    .lb-score { color:var(--gold); text-shadow:0 0 8px rgba(232,197,106,.3); font-size:.82rem; font-weight:700; }
+    .lb-time  { color:var(--tx2); font-size:.58rem; }
+    .lb-rank-badge { font-family:'Share Tech Mono',monospace; font-size:.58rem;
+      padding:2px 6px; border-radius:2px; display:inline-block; }
+    .lb-rank-badge.S { background:rgba(232,197,106,.15); color:var(--gold); border:1px solid rgba(232,197,106,.3); }
+    .lb-rank-badge.A { background:rgba(0,255,136,.1);   color:var(--green); border:1px solid rgba(0,255,136,.3); }
+    .lb-rank-badge.B { background:rgba(0,212,255,.1);   color:var(--cyan);  border:1px solid rgba(0,212,255,.3); }
+    .lb-rank-badge.C { background:rgba(255,68,102,.1);  color:var(--red);   border:1px solid rgba(255,68,102,.3); }
+    .winner-row td { background:rgba(232,197,106,.03) !important; }
+
+    /* Expanded breakdown row */
+    .lb-breakdown { background:rgba(0,0,0,.3); border-bottom:1px solid rgba(255,255,255,.04);
+      display:none; }
+    .lb-breakdown td { padding:10px 12px; }
+    .lb-breakdown-inner { display:flex; gap:8px; flex-wrap:wrap; }
+    .lb-room-chip { display:flex; flex-direction:column; align-items:center;
+      padding:7px 10px; border-radius:3px; min-width:72px;
+      background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.06); }
+    .lb-room-chip .rc-lbl { font-family:'Share Tech Mono',monospace; font-size:.46rem;
+      letter-spacing:1.5px; color:var(--tx2); margin-bottom:4px; }
+    .lb-room-chip .rc-val { font-family:'Share Tech Mono',monospace; font-size:.78rem;
+      font-weight:700; }
+    .lb-room-chip.done   { border-color:rgba(0,255,136,.18); }
+    .lb-room-chip.done .rc-val { color:var(--green); }
+    .lb-room-chip.missed { border-color:rgba(255,68,102,.12); }
+    .lb-room-chip.missed .rc-val { color:rgba(255,68,102,.55); }
+
+    .lb-empty { padding:28px 18px; text-align:center;
+      font-family:'Share Tech Mono',monospace; font-size:.6rem; letter-spacing:2px; color:var(--tx2); }
+
+    /* LB Summary footer */
+    #lb-summary { border-top:1px solid var(--border); padding:12px 14px;
+      display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+    .lbs-item { text-align:center; }
+    .lbs-val { font-family:'Share Tech Mono',monospace; font-size:.85rem; font-weight:700; color:var(--cyan); }
+    .lbs-lbl { font-family:'Share Tech Mono',monospace; font-size:.48rem;
+      letter-spacing:2px; color:var(--tx2); margin-top:3px; }
+
+    /* ── WARN MODAL ── */
+    #warn-modal { display:none; position:fixed; inset:0; z-index:9999;
+      background:rgba(0,0,0,.8); backdrop-filter:blur(8px);
+      align-items:center; justify-content:center; }
+    .modal-box { background:rgba(4,8,22,.98); border:1px solid var(--border);
+      border-radius:4px; padding:30px; width:min(400px,90vw); }
+    .modal-title { font-family:'Share Tech Mono',monospace; font-size:.78rem;
+      letter-spacing:3px; color:var(--cyan); margin-bottom:16px; }
+    .modal-input { width:100%; padding:11px 14px; margin-bottom:14px;
+      background:rgba(0,0,0,.5); border:1px solid var(--border); border-radius:3px;
+      color:var(--tx1); font-family:'Share Tech Mono',monospace; font-size:.8rem; outline:none; }
+    .modal-input:focus { border-color:var(--cyan); }
+    .modal-actions { display:flex; gap:10px; justify-content:flex-end; }
+
+    /* ── EXPORT TOAST ── */
+    #export-toast { position:fixed; bottom:20px; left:50%;
+      transform:translateX(-50%) translateY(60px); z-index:5000;
+      background:rgba(0,255,136,.1); border:1px solid rgba(0,255,136,.25);
+      border-radius:4px; padding:8px 18px;
+      font-family:'Share Tech Mono',monospace; font-size:.58rem; letter-spacing:2px; color:var(--green);
+      transition:transform .35s cubic-bezier(.16,1,.3,1); }
+    #export-toast.show { transform:translateX(-50%) translateY(0); }
+
+    /* ── TOP-3 PODIUM ─────────────────────────────────── */
+    #lb-podium { padding:14px 14px 0; display:none; }
+    .podium-row { display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:8px; margin-bottom:12px; }
+    .pod { border-radius:4px; padding:13px 10px; text-align:center; border:1px solid; }
+    .pod-1 { background:rgba(232,197,106,.06); border-color:rgba(232,197,106,.3);
+              box-shadow:0 0 16px rgba(232,197,106,.07); }
+    .pod-2 { background:rgba(192,200,216,.04); border-color:rgba(192,200,216,.18); }
+    .pod-3 { background:rgba(200,120,60,.04);  border-color:rgba(200,120,60,.18); }
+    .pod-medal  { font-size:1.5rem; margin-bottom:3px; }
+    .pod-pos    { font-family:'Share Tech Mono',monospace; font-size:.44rem; letter-spacing:3px; margin-bottom:7px; }
+    .pod-1 .pod-pos { color:var(--gold); }
+    .pod-2 .pod-pos { color:#c0c8d8; }
+    .pod-3 .pod-pos { color:#c87941; }
+    .pod-name  { font-family:'Share Tech Mono',monospace; font-size:.6rem; color:var(--tx1);
+                 letter-spacing:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:2px; }
+    .pod-meta  { font-family:'Share Tech Mono',monospace; font-size:.46rem; color:var(--tx2);
+                 letter-spacing:1px; margin-bottom:2px; }
+    .pod-div   { font-family:'Share Tech Mono',monospace; font-size:.46rem; color:var(--purple);
+                 letter-spacing:1px; margin-bottom:7px; }
+    .pod-score { font-family:'Share Tech Mono',monospace; font-size:1.4rem; font-weight:700;
+                 color:var(--gold); line-height:1; }
+    .pod-1 .pod-score { font-size:1.65rem; }
+    .pod-time  { font-family:'Share Tech Mono',monospace; font-size:.48rem; color:var(--tx2); margin-top:3px; }
+    .pod-divider { height:1px; background:var(--border); margin:0 14px 12px; }
+    /* Division column in table */
+    .lb-div { color:var(--purple); font-size:.55rem; letter-spacing:1px; }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+
+  <!-- ══ TOPBAR ══ -->
+  <div id="topbar">
+    <div id="conn-dot"></div>
+    <span class="tb-brand">◈ SENTINEL × EXIT-VO.O</span>
+    <span class="tb-sep">|</span>
+    <span class="tb-stat">TOTAL <span id="stat-total">0</span></span>
+    <span class="tb-stat">ONLINE <span class="green" id="stat-online">0</span></span>
+    <span class="tb-stat">PLAYING <span class="purple" id="stat-playing">0</span></span>
+    <span class="tb-stat">DONE <span class="gold" id="stat-done">0</span></span>
+    <div class="tb-right">
+      <span id="topbar-clock" style="font-family:'Share Tech Mono',monospace;font-size:.62rem;"></span>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div id="main">
+
+    <!-- ━━━━ LEFT COLUMN ━━━━ -->
+    <div>
+
+      <!-- Overview stats -->
+      <div class="panel" id="overview" style="margin-bottom:16px;">
+        <div class="panel-head"><div class="dot green"></div>GAME OVERVIEW</div>
+        <div class="panel-body">
+          <div class="stats-grid" style="margin-bottom:14px;">
+            <div class="stat-box">
+              <div class="stat-val cyan" id="ov-registered">0</div>
+              <div class="stat-lbl">REGISTERED</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val green" id="ov-online">0</div>
+              <div class="stat-lbl">ONLINE NOW</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val gold" id="ov-submitted">0</div>
+              <div class="stat-lbl">SUBMITTED</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val purple" id="ov-avg">—</div>
+              <div class="stat-lbl">AVG SCORE</div>
+            </div>
+          </div>
+
+          <!-- Game info + controls -->
+          <div id="game-info-bar">
+            <span class="gi-tag active">▶ LIVE</span>
+            <span class="gi-sep">|</span>
+            <span class="gi-game">EXIT-VO.O  ·  ESCAPE · CODE · CONQUER</span>
+            <span class="gi-sep">|</span>
+            <span class="gi-tag" style="color:var(--tx2);">6 ROOMS</span>
+            <span id="gi-timer">00:00:00</span>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button class="btn btn-gold btn-sm" id="export-csv-btn">⬇ EXPORT CSV</button>
+            <button class="btn btn-red btn-sm" id="reset-lb-btn">↺ RESET LEADERBOARD</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Monitor -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="dot cyan"></div>STUDENT MONITOR
+          <span style="margin-left:8px;font-size:.5rem;color:var(--tx2);">
+            Click violation counts to expand audit log
+          </span>
+          <div class="panel-head-actions">
+            <input id="search-input" placeholder="Filter by name / USN…"
+              style="padding:4px 10px;background:rgba(0,0,0,.4);border:1px solid rgba(0,212,255,.15);
+                     border-radius:3px;color:var(--tx1);font-family:'Share Tech Mono',monospace;
+                     font-size:.58rem;letter-spacing:1px;outline:none;width:180px;"
+              oninput="filterStudents(this.value)">
+          </div>
+        </div>
+        <div class="panel-body" style="padding:12px 14px;">
+          <div id="student-list">
+            <div class="no-students">⌛ Waiting for students to connect…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ RIGHT COLUMN — LEADERBOARD ━━━━ -->
+    <div class="panel" id="lb-panel">
+      <div class="panel-head" style="flex-shrink:0;">
+        <div class="dot gold"></div>LIVE LEADERBOARD
+        <span style="margin-left:8px;font-size:.5rem;color:var(--tx2);">Click row to expand score breakdown</span>
+      </div>
+
+      <div id="lb-podium">
+        <div class="podium-row" id="podium-row"></div>
+        <div class="pod-divider"></div>
+      </div>
+      <div id="lb-scroll">
+        <div id="leaderboard-body">
+          <div class="lb-empty">⏳ No results submitted yet</div>
+        </div>
+      </div>
+
+      <div id="lb-summary">
+        <div class="lbs-item">
+          <div class="lbs-val" id="lbs-count">—</div>
+          <div class="lbs-lbl">ENTRIES</div>
+        </div>
+        <div class="lbs-item">
+          <div class="lbs-val" id="lbs-high">—</div>
+          <div class="lbs-lbl">HIGH SCORE</div>
+        </div>
+        <div class="lbs-item">
+          <div class="lbs-val" id="lbs-avg">—</div>
+          <div class="lbs-lbl">AVG SCORE</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#main -->
+
+  <!-- ══ WARN MODAL ══ -->
+  <div id="warn-modal">
+    <div class="modal-box">
+      <div class="modal-title">⚠ SEND WARNING TO STUDENT</div>
+      <input class="modal-input" id="warn-text" placeholder="Warning message…">
+      <div class="modal-actions">
+        <button class="btn btn-gold btn-sm" id="warn-cancel-btn">CANCEL</button>
+        <button class="btn btn-red btn-sm" id="warn-send-btn">SEND WARNING</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ EXPORT TOAST ══ -->
+  <div id="export-toast">✓ CSV exported to downloads</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  'use strict';
+  /* ════════════════════════════════════════════════════════════
+     CONDUCTOR CLIENT  v2
+     Changes from v1:
+       • Removed "Exam Deployment" URL input section entirely
+       • Added game overview stats strip with avg score
+       • Live session timer
+       • Leaderboard: expandable room-by-room score breakdown
+       • Rank badge (S/A/B/C) in leaderboard
+       • Student cards: room progress pips + current room display
+       • Export CSV button
+       • Student search/filter
+  ════════════════════════════════════════════════════════════ */
+
+  const socket = io();
+  socket.emit('register_conductor');
+
+  /* ── STATE ── */
+  let students    = [];
+  let leaderboard = [];
+  let warnTarget  = null;
+  let filterText  = '';
+  let sessionStart = Date.now();
+
+  /* ── ROOM / SCORE CONSTANTS ── */
+  const ROOMS = [
+    { key:'mroom1', label:'MRM1', max:20  },
+    { key:'cs001',  label:'CS-01',max:15  },
+    { key:'mroom2', label:'MRM2', max:25  },
+    { key:'cs002',  label:'CS-02',max:20  },
+    { key:'mroom3', label:'MRM3', max:40  },
+    { key:'cs003',  label:'CS-03',max:30  },
+  ];
+  const MAX_SCORE = 365;
+
+  /* ── CLOCK ── */
+  setInterval(() => {
+    const now = new Date();
+    document.getElementById('topbar-clock').textContent =
+      now.toLocaleTimeString('en-IN',{hour12:false});
+  }, 1000);
+
+  /* ── SESSION TIMER ── */
+  setInterval(() => {
+    const diff = Math.floor((Date.now() - sessionStart) / 1000);
+    const h = Math.floor(diff/3600), m = Math.floor((diff%3600)/60), s = diff%60;
+    document.getElementById('gi-timer').textContent =
+      pad(h)+':'+pad(m)+':'+pad(s);
+  }, 1000);
+
+  /* ── SOCKET EVENTS ── */
+  socket.on('student_list_update', list => {
+    students = list;
+    renderStudents();
+    updateTopbar();
+    updateOverview();
+  });
+  socket.on('violation_update', ({ studentId, violations, newEntry }) => {
+    const idx = students.findIndex(s => s.id === studentId);
+    if (idx >= 0) {
+      students[idx].violations = violations;
+      students[idx].auditLog   = students[idx].auditLog || [];
+      students[idx].auditLog.unshift(newEntry);
+    }
+    renderStudents();
+  });
+  socket.on('leaderboard_update', lb => {
+    leaderboard = lb;
+    renderLeaderboard();
+    updateTopbar();
+    updateOverview();
+  });
+  socket.on('student_joined', () => {});
+  socket.on('student_disconnected', () => {});
+
+  /* Lightweight heartbeat acknowledgement — update room label live */
+  socket.on('heartbeat_ack', ({ studentId, fullscreen, currentRoom }) => {
+    const s = students.find(x => x.id === studentId);
+    if (s) {
+      s.fullscreen   = fullscreen;
+      s.currentRoom  = currentRoom;
+      // Patch DOM directly to avoid full re-render on every heartbeat
+      const card = document.getElementById('sc-' + studentId);
+      if (card) {
+        const meta = card.querySelector('.s-meta');
+        if (meta) meta.textContent = 'ROOM: ' + (currentRoom||'—');
+        const fsEl = card.querySelector('.s-status');
+        if (fsEl) {
+          const lbl = fsEl.textContent.replace(/\s?📵/,'');
+          fsEl.textContent = lbl + (fullscreen === false ? ' 📵' : '');
+        }
+      }
+    }
+  });
+
+  /* ── RESET LEADERBOARD ── */
+  document.getElementById('reset-lb-btn').addEventListener('click', () => {
+    if (confirm('Reset entire leaderboard? This cannot be undone.')) {
+      socket.emit('reset_leaderboard');
+    }
+  });
+
+  /* ── WARN MODAL ── */
+  document.getElementById('warn-cancel-btn').addEventListener('click', () => {
+    document.getElementById('warn-modal').style.display = 'none';
+    warnTarget = null;
+  });
+  document.getElementById('warn-send-btn').addEventListener('click', () => {
+    const msg = document.getElementById('warn-text').value.trim();
+    if (!msg || !warnTarget) return;
+    socket.emit('warn_student', { targetId:warnTarget, message:msg });
+    document.getElementById('warn-modal').style.display = 'none';
+    warnTarget = null;
+    document.getElementById('warn-text').value = '';
+  });
+  document.getElementById('warn-text').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('warn-send-btn').click();
+  });
+
+  /* ── EXPORT CSV ── */
+  document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+
+  /* ── STUDENT FILTER ── */
+  window.filterStudents = function(val) {
+    filterText = val.toLowerCase();
+    renderStudents();
+  };
+
+  /* ════════════════════════════════════════
+     HELPERS
+  ════════════════════════════════════════ */
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function fmtTime(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const m = Math.floor(sec/60), s = sec%60;
+    return pad(m)+':'+pad(s);
+  }
+  function fmtTimeLong(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+    return h > 0 ? (pad(h)+':'+pad(m)+':'+pad(s)) : (pad(m)+':'+pad(s));
+  }
+  function calcRank(score) {
+    const p = score / MAX_SCORE;
+    return p >= .88 ? 'S' : p >= .70 ? 'A' : p >= .48 ? 'B' : 'C';
+  }
+  function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* ════════════════════════════════════════
+     TOPBAR + OVERVIEW UPDATE
+  ════════════════════════════════════════ */
+  function updateTopbar() {
+    const total   = students.length;
+    const online  = students.filter(s => s.online).length;
+    const playing = students.filter(s => s.online && !s.result).length;
+    const done    = students.filter(s => s.result).length;
+    document.getElementById('stat-total').textContent   = total;
+    document.getElementById('stat-online').textContent  = online;
+    document.getElementById('stat-playing').textContent = playing;
+    document.getElementById('stat-done').textContent    = done;
+  }
+
+  function updateOverview() {
+    const total = students.length;
+    const online = students.filter(s => s.online).length;
+    const done   = students.filter(s => s.result).length;
+    document.getElementById('ov-registered').textContent = total;
+    document.getElementById('ov-online').textContent     = online;
+    document.getElementById('ov-submitted').textContent  = done;
+
+    if (leaderboard.length > 0) {
+      const avg = Math.round(leaderboard.reduce((a,b) => a + b.score, 0) / leaderboard.length);
+      document.getElementById('ov-avg').textContent = avg;
+    } else {
+      document.getElementById('ov-avg').textContent = '—';
+    }
+  }
+
+  /* ════════════════════════════════════════
+     RENDER STUDENTS
+  ════════════════════════════════════════ */
+  function renderStudents() {
+    const container = document.getElementById('student-list');
+
+    let list = students;
+    if (filterText) {
+      list = list.filter(s =>
+        s.name.toLowerCase().includes(filterText) ||
+        (s.usn||'').toLowerCase().includes(filterText) ||
+        (s.currentRoom||'').toLowerCase().includes(filterText)
+      );
+    }
+
+    if (!list.length) {
+      container.innerHTML = students.length
+        ? '<div class="no-students">🔍 No students match the filter</div>'
+        : '<div class="no-students">⌛ Waiting for students to connect…</div>';
+      return;
+    }
+
+    container.innerHTML = list.map(s => {
+      const tabs  = s.violations?.tabs  || 0;
+      const mouse = s.violations?.mouse || 0;
+      const keys  = s.violations?.keys  || 0;
+      const vTotal = tabs + mouse + keys;
+      const isDone       = !!s.result;
+      const isFlagged    = vTotal >= 8;
+      const cardClass    = s.terminated ? 'terminated' : isDone ? 'done' : isFlagged ? 'flagged' : s.online ? '' : 'offline';
+      const statusLabel  = s.terminated ? '✕ TERMINATED' : s.online ? '● ONLINE' : '○ OFFLINE';
+      const statusClass  = s.terminated ? 'terminated' : s.online ? 'online' : 'offline';
+      const prog = s.result?.log ? Object.keys(s.result.log).length : 0;
+
+      // Room progress pips (0–6)
+      const pipsProg = isDone ? 6 : (s.result?.log ? Object.keys(s.result.log).length : 0);
+      const totalPips = 6;
+      const pipsHTML = Array.from({length:totalPips}, (_,i) =>
+        `<div class="s-pip ${i < pipsProg ? 'done' : ''}"></div>`
+      ).join('');
+
+      const resultBadge = isDone
+        ? `<div class="score-badge">✓ ${s.result.score}pts · ${fmtTime(Math.round(s.result.timeSec))} · ${calcRank(s.result.score)} RANK</div>`
+        : '';
+
+      const currentRoomStr = s.currentRoom
+        ? `<div class="s-meta">ROOM: ${escHtml(s.currentRoom)}</div>` : '';
+
+      const fsIcon = s.fullscreen === false ? ' 📵' : '';
+
+      const auditHTML = (s.auditLog||[]).slice(0,20).map(e =>
+        `<div class="alog-entry"><span class="alog-time">${(e.time||'').slice(11,19)}</span>${escHtml(e.reason||'')}</div>`
+      ).join('') || '<div style="color:rgba(79,120,170,.3)">No violations yet</div>';
+
+      return `<div class="s-card ${cardClass}" id="sc-${s.id}">
+        <div class="s-row">
+          <div>
+            <div class="s-name">${escHtml(s.name)}${isFlagged?'  🚩':''}</div>
+            <div class="s-usn">${escHtml(s.usn||'—')}${s.division && s.division!=='—' ? '  ·  '+escHtml(s.division) : ''}</div>
+            ${currentRoomStr}
+            ${resultBadge}
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div class="s-status ${statusClass}">${statusLabel}${fsIcon}</div>
+            <div class="s-actions" style="margin-top:6px;justify-content:flex-end;">
+              <button class="btn btn-gold btn-xs" onclick="openWarn('${s.id}')">WARN</button>
+              <button class="btn btn-red btn-xs" onclick="doTerminate('${s.id}')">KICK</button>
+              <button class="btn btn-cyan btn-xs" onclick="doClear('${s.id}')">CLR</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="s-prog-wrap">
+          <div class="s-prog-label">
+            <span>ROOMS ${pipsProg}/6</span>
+            ${isDone ? '<span style="color:var(--gold);font-size:.5rem;">COMPLETE</span>' : ''}
+          </div>
+          <div class="s-prog-pips">${pipsHTML}</div>
+        </div>
+
+        <div class="viol-grid" onclick="toggleLog('${s.id}')">
+          <div class="viol-box">
+            <div class="viol-num ${tabs>=5?'danger':''}">${tabs}</div>
+            <div class="viol-lbl">TABS</div>
+          </div>
+          <div class="viol-box">
+            <div class="viol-num ${mouse>=5?'danger':''}">${mouse}</div>
+            <div class="viol-lbl">MOUSE</div>
+          </div>
+          <div class="viol-box">
+            <div class="viol-num ${keys>=5?'danger':''}">${keys}</div>
+            <div class="viol-lbl">KEYS</div>
+          </div>
+        </div>
+        <div class="audit-log" id="log-${s.id}">${auditHTML}</div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ════════════════════════════════════════
+     RENDER LEADERBOARD
+  ════════════════════════════════════════ */
+  /* ── RENDER TOP-3 PODIUM ── */
+  function renderPodium(lb) {
+    const podium = document.getElementById('lb-podium');
+    const row    = document.getElementById('podium-row');
+    if (!lb.length) { podium.style.display='none'; return; }
+    podium.style.display = 'block';
+    // Layout: 2nd | 1st | 3rd
+    const slots = [
+      { p:lb[1], medal:'🥈', pos:'2ND PLACE', cls:'pod-2' },
+      { p:lb[0], medal:'🥇', pos:'1ST PLACE', cls:'pod-1' },
+      { p:lb[2], medal:'🥉', pos:'3RD PLACE', cls:'pod-3' },
+    ];
+    row.innerHTML = slots.map(({p, medal, pos, cls}) => {
+      if (!p) return `<div class="pod ${cls}"><div class="pod-medal">—</div><div class="pod-pos">${pos}</div><div class="pod-name" style="color:var(--tx2)">WAITING</div></div>`;
+      return `<div class="pod ${cls}">
+        <div class="pod-medal">${medal}</div>
+        <div class="pod-pos">${pos}</div>
+        <div class="pod-name">${escHtml(p.name)}</div>
+        <div class="pod-meta">${escHtml(p.usn||'—')}</div>
+        <div class="pod-div">DIV: ${escHtml(p.division||'—')}</div>
+        <div class="pod-score">${p.score}</div>
+        <div class="pod-time">⏱ ${fmtTimeLong(Math.round(p.timeSec))}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderLeaderboard() {
+    const body = document.getElementById('leaderboard-body');
+
+    if (!leaderboard.length) {
+      body.innerHTML = '<div class="lb-empty">⏳ No results submitted yet</div>';
+      renderPodium([]);
+      updateLBSummary([]);
+      return;
+    }
+
+    renderPodium(leaderboard);
+
+    const medals  = ['🥇','🥈','🥉'];
+    const rcls    = ['gold','silver','bronze'];
+
+    body.innerHTML = `<table class="lb-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>NAME</th>
+          <th>USN</th>
+          <th>DIV</th>
+          <th>SCORE</th>
+          <th>TIME</th>
+          <th>RANK</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${leaderboard.map((p, i) => {
+          const rank = calcRank(p.score);
+          const logData = p.log || {};
+
+          /* Breakdown row */
+          const roomChips = ROOMS.map(r => {
+            const pts = logData[r.key];
+            const hasPts = pts !== undefined && pts !== null;
+            const cls = hasPts ? 'done' : 'missed';
+            return `<div class="lb-room-chip ${cls}">
+              <div class="rc-lbl">${r.label}</div>
+              <div class="rc-val">${hasPts ? '+'+pts : '—'}</div>
+            </div>`;
+          }).join('');
+
+          const roomTotal = ROOMS.reduce((a,r) => a + (logData[r.key] ?? 0), 0);
+
+          return `
+          <tr class="lb-row ${i<3?'winner-row':''}" onclick="toggleLBBreakdown(${i})">
+            <td class="lb-rank ${rcls[i]||''}">${medals[i]||i+1}</td>
+            <td class="lb-name">${escHtml(p.name)}</td>
+            <td class="lb-usn">${escHtml(p.usn||'—')}</td>
+            <td class="lb-div">${escHtml(p.division||'—')}</td>
+            <td class="lb-score">${p.score}</td>
+            <td class="lb-time">${fmtTimeLong(Math.round(p.timeSec))}</td>
+            <td><span class="lb-rank-badge ${rank}">${rank}</span></td>
+          </tr>
+          <tr class="lb-breakdown" id="lb-bd-${i}">
+            <td colspan="7">
+              <div class="lb-breakdown-inner">
+                <div class="lb-room-chip done">
+                  <div class="rc-lbl">BASE</div>
+                  <div class="rc-val">100</div>
+                </div>
+                ${roomChips}
+                <div class="lb-room-chip" style="border-color:rgba(232,197,106,.2);min-width:72px;">
+                  <div class="rc-lbl">TOTAL</div>
+                  <div class="rc-val" style="color:var(--gold);">${p.score}</div>
+                </div>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+
+    updateLBSummary(leaderboard);
+  }
+
+  function toggleLBBreakdown(i) {
+    const row = document.getElementById('lb-bd-'+i);
+    if (!row) return;
+    const isOpen = row.style.display === 'table-row';
+    row.style.display = isOpen ? 'none' : 'table-row';
+  }
+
+  function updateLBSummary(lb) {
+    const count = lb.length;
+    const high  = count ? Math.max(...lb.map(e=>e.score)) : '—';
+    const avg   = count ? Math.round(lb.reduce((a,b)=>a+b.score,0)/count) : '—';
+    document.getElementById('lbs-count').textContent = count || '—';
+    document.getElementById('lbs-high').textContent  = high;
+    document.getElementById('lbs-avg').textContent   = avg;
+  }
+
+  /* ════════════════════════════════════════
+     EXPORT CSV
+  ════════════════════════════════════════ */
+  function exportCSV() {
+    if (!leaderboard.length) { alert('No results to export yet.'); return; }
+
+    const roomKeys = ROOMS.map(r => r.key);
+    const roomLabels = ROOMS.map(r => r.label);
+
+    const header = ['Rank','Name','USN','Division','Score','Time(s)','Rank-Badge','Base',...roomLabels,'Total-Rooms'].join(',');
+    const rows = leaderboard.map((p, i) => {
+      const log = p.log || {};
+      const roomVals = roomKeys.map(k => log[k] !== undefined ? log[k] : '');
+      const roomTotal = roomKeys.reduce((a,k) => a + (log[k]||0), 0);
+      const rank = calcRank(p.score);
+      return [i+1, `"${p.name}"`, p.usn||'—', p.division||'—', p.score, Math.round(p.timeSec), rank, 100, ...roomVals, roomTotal].join(',');
+    });
+
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'exitvo_leaderboard_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click(); URL.revokeObjectURL(url);
+
+    const toast = document.getElementById('export-toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  /* ════════════════════════════════════════
+     ACTIONS
+  ════════════════════════════════════════ */
+  function toggleLog(id) {
+    const el = document.getElementById('log-'+id);
+    if (el) el.style.display = el.style.display === 'block' ? 'none' : 'block';
+  }
+  function openWarn(id) {
+    warnTarget = id;
+    document.getElementById('warn-text').value = '';
+    document.getElementById('warn-modal').style.display = 'flex';
+    document.getElementById('warn-text').focus();
+  }
+  function doTerminate(id) {
+    const s = students.find(x => x.id === id);
+    const reason = prompt('Reason for terminating ' + (s?.name||id) + '?\n(leave blank for default)');
+    if (reason === null) return;
+    socket.emit('terminate_student', { targetId:id, reason: reason || 'Terminated by proctor.' });
+  }
+  function doClear(id) {
+    socket.emit('clear_violations', { targetId:id });
+  }
+
+  /* Close warn modal on backdrop click */
+  document.getElementById('warn-modal').addEventListener('click', function(e) {
+    if (e.target === this) { this.style.display='none'; warnTarget=null; }
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEARL ABYSS — OCEAN ESCAPE</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style3.css">
+<link rel="stylesheet" href="gs-hud.css">
+<!--
+  gameState.js in <head> — GS must exist before any inline onclick fires.
+-->
+<script src="gameState.js"></script>
+</head>
+<body>
+
+<canvas id="bubbles"></canvas>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="land-bg"></div>
+  <div class="land-grid"></div>
+  <div class="land-content">
+    <div class="pearl-anim">
+      <svg viewBox="0 0 300 300">
+        <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(0,180,216,.15)" stroke-width="1"/>
+        <circle cx="150" cy="150" r="108" fill="none" stroke="rgba(155,93,229,.12)" stroke-width="1" stroke-dasharray="6 3"/>
+        <circle cx="150" cy="150" r="76"  fill="none" stroke="rgba(0,180,216,.18)" stroke-width="1"/>
+        <polygon points="150,25 260,210 40,210"  fill="none" stroke="rgba(155,93,229,.2)"  stroke-width="1"/>
+        <polygon points="150,275 40,90 260,90"   fill="none" stroke="rgba(0,180,216,.14)" stroke-width="1"/>
+      </svg>
+      <div class="pearl-glyph">◈</div>
+    </div>
+    <div class="land-tag">DEEP OCEAN PROTOCOL · INITIATED</div>
+    <h1 class="land-h1">PEARL<br><span>ABYSS</span></h1>
+    <p class="land-sub">Three gems. One lion. One truth.<br>The ocean holds the key to everything.</p>
+    <div class="land-gems">
+      <span class="lg" style="--c:#f0eaff">◈ PEARL</span>
+      <span class="lg" style="--c:#9b5de5">✦ STAR</span>
+      <span class="lg" style="--c:#e63946">◆ REDSTONE</span>
+    </div>
+    <button class="dive-btn" onclick="G2.showInfo()">
+      <span class="dive-fill"></span>
+      <span>DIVE DEEP →</span>
+    </button>
+  </div>
+</div>
+
+<!-- PLAYER INFO (pre-populated from GS) -->
+<div id="info-screen" style="display:none">
+  <div class="info-box">
+    <div class="info-glyph">◈</div>
+    <h2>ENTER YOUR IDENTITY</h2>
+    <input id="player-name" class="ocean-input" type="text" placeholder="YOUR NAME"        maxlength="30">
+    <input id="player-usn"  class="ocean-input" type="text" placeholder="USN / ROLL NUMBER" maxlength="20">
+    <button class="dive-btn small-dive" onclick="G2.beginGame()">
+      <span class="dive-fill"></span>
+      <span>BEGIN MISSION →</span>
+    </button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game" style="display:none">
+  <div id="hud">
+    <div class="hud-left">
+      <div class="hud-logo">◈ PEARL ABYSS</div>
+      <div class="hud-crumb" id="room-label">THE GREAT HALL</div>
+    </div>
+    <div class="hud-mid">
+      <div class="gem-pips">
+        <div class="gp" id="gp-pearl"  title="Pearl Gem">◈</div>
+        <div class="gp" id="gp-star"   title="Star Gem">✦</div>
+        <div class="gp" id="gp-red"    title="Redstone">◆</div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-player">
+        <span id="hud-name">EXPLORER</span>&nbsp;|&nbsp;<span id="hud-usn">—</span>
+      </div>
+      <div class="hud-score-wrap"><span class="hud-slbl">SCORE</span><span id="score-disp">100</span></div>
+      <div class="hud-timer-wrap"><span class="hud-slbl">TIME</span><span id="timer-disp">00:00</span></div>
+    </div>
+  </div>
+
+  <div id="game-wrap">
+    <div id="scene">
+      <div id="hotlayer"></div>
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+    </div>
+    <div id="shelf">
+      <div class="shelf-hdr">RELICS</div>
+      <div id="shelf-slots"></div>
+    </div>
+  </div>
+
+  <div class="back-wrap">
+    <button id="back-btn" onclick="G2.goBack()" style="display:none">← SURFACE</button>
+  </div>
+</div>
+
+<!-- MESSAGE OVERLAY -->
+<div id="msg-ov" style="display:none">
+  <div class="msg-box">
+    <div class="msg-glyph">◈</div>
+    <p id="msg-text"></p>
+    <button class="ocean-btn" onclick="G2.closeMsg()">UNDERSTOOD</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT TOAST -->
+<div id="toast" style="display:none">
+  <div class="toast-inner">
+    <span class="toast-icon">✦</span>
+    <span id="toast-text">ITEM OBTAINED</span>
+  </div>
+</div>
+
+<!-- LION MODAL -->
+<div id="lion-modal" style="display:none">
+  <div class="lion-box">
+    <div class="lion-hdr">
+      <h2>⚔ OFFER THE THREE GEMS TO THE LION</h2>
+      <p>Select a gem from your shelf, then click its slot below</p>
+    </div>
+    <div class="gem-row">
+      <div class="gem-card" onclick="G2.placeGem('pearl')">
+        <div class="gc-ring gc-pearl" id="gcr-pearl">
+          <img id="gci-pearl" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+          <span id="gcl-pearl" class="gc-lbl">PEARL</span>
+        </div>
+        <div class="gc-name">Pearl</div>
+      </div>
+      <div class="gem-card" onclick="G2.placeGem('star')">
+        <div class="gc-ring gc-star" id="gcr-star">
+          <img id="gci-star" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+          <span id="gcl-star" class="gc-lbl">STAR</span>
+        </div>
+        <div class="gc-name">Star Gem</div>
+      </div>
+      <div class="gem-card" onclick="G2.placeGem('redstone')">
+        <div class="gc-ring gc-red" id="gcr-red">
+          <img id="gci-red" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+          <span id="gcl-red" class="gc-lbl">REDSTONE</span>
+        </div>
+        <div class="gc-name">Redstone</div>
+      </div>
+    </div>
+    <div id="lion-result"></div>
+    <button class="ocean-btn sec-btn" onclick="G2.closeLion()" style="margin-top:18px">CLOSE</button>
+  </div>
+</div>
+
+<!-- GATE MODAL -->
+<div id="gate-modal" style="display:none">
+  <div class="gate-wrap">
+    <img src="image45.jpg" class="gate-bg" alt="Gate" draggable="false">
+    <div class="gate-ui">
+      <div class="gate-lbl">ALIGN THE SYMBOLS OF THE GATE</div>
+      <div class="gate-orbs" id="gate-orbs"></div>
+      <button class="gate-open-btn" onclick="G2.decodeGate()">⚡ OPEN THE GATE</button>
+    </div>
+    <button class="gate-close-btn" onclick="G2.closeGate()">✕</button>
+  </div>
+</div>
+
+<!-- WIN SCREEN — nav patch watches style attribute for display:flex -->
+<div id="win-screen" style="display:none">
+  <canvas id="confetti-cv"></canvas>
+  <div class="win-content">
+    <div class="win-trophy">🔱</div>
+    <h1 class="win-h">PATH REVEALED!</h1>
+    <p class="win-sub">◈ THE LION GRANTS YOU PASSAGE ◈</p>
+    <div class="win-stats">
+      <div class="ws-row"><span>NAME</span> <span id="ws-name">—</span></div>
+      <div class="ws-row"><span>USN</span>  <span id="ws-usn">—</span></div>
+      <div class="ws-row"><span>SCORE</span><span id="ws-score">—</span></div>
+      <div class="ws-row"><span>TIME</span> <span id="ws-time">—</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="veil"></div>
+<div id="flash"></div>
+
+<!--
+  SCRIPT LOAD ORDER — critical:
+  1. gameState.js  already in <head>
+  2. script3.js    defines G2, sets win via win-screen style.display='flex'
+  3. room3_nav_patch.js  watches win-screen style attribute AFTER G2 exists
+-->
+<script src="script3.js"></script>
+<script src="room3_nav_patch.js"></script>
+
+</body>
+</html>

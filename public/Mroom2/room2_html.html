@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CARNIVAL OF SHADOWS</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Creepster&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="room_style2.css">
+<link rel="stylesheet" href="gs-hud.css">
+<!--
+  gameState.js MUST be in <head> — GS must exist before any script runs.
+-->
+<script src="gameState.js"></script>
+</head>
+<body>
+
+<canvas id="fx-canvas"></canvas>
+<div id="trans-veil"></div>
+<div id="flash-fx"></div>
+
+<!-- Win screen — nav patch watches this for class 'on' -->
+<div id="win-screen">
+  <div class="win-icon">🔑</div>
+  <div class="win-title">KEY FOUND!</div>
+  <div class="win-sub">◈ YOU HAVE ESCAPED THE CARNIVAL OF SHADOWS ◈</div>
+</div>
+
+<div id="top-bar">
+  <div class="tick-text">
+    ◈ CARNIVAL OF SHADOWS ◈ CAN YOU ESCAPE? ◈ BEWARE THE JESTER ◈
+    THE WITCH HUNGERS ◈ SOLVE THE CIPHER ◈ FIND THE KEY ◈ WELCOME TO YOUR DOOM ◈
+  </div>
+</div>
+
+<div id="game-hud">
+  <span class="label">SCORE</span>
+  <span id="cr-val">100</span>
+  <div id="progress-pips">
+    <div class="pip" id="pip-show"></div>
+    <div class="pip" id="pip-bar"></div>
+    <div class="pip" id="pip-witch"></div>
+    <div class="pip" id="pip-entry"></div>
+  </div>
+</div>
+
+<div id="object-shelf">
+  <div class="shelf-label">RELICS</div>
+  <div id="slots-container"></div>
+</div>
+
+<div id="viewport">
+  <div id="scene-canvas"></div>
+  <div id="hitbox-layer"></div>
+  <div id="float-layer"></div>
+  <div id="ball-counter"></div>
+
+  <div class="back-nav-zone">
+    <button id="global-back-btn" onclick="G.goBack()">← BACK</button>
+  </div>
+
+  <button id="float-hint-btn" onclick="G.toggleFloatHint()">💡 HINT &nbsp;(−3 pts)</button>
+  <div id="float-hint-popup"></div>
+
+  <div id="interaction-ui" class="hidden">
+    <div id="glass-panel-wrapper" class="glass-panel">
+      <h2 id="ui-title">SYSTEM</h2>
+      <div id="ui-body"></div>
+      <div id="ui-feedback"></div>
+      <div id="ui-hint-box"></div>
+      <div style="margin-top:16px">
+        <button class="btn-3d ghost" onclick="G.toggleHint()">💡 HINT &nbsp;(−3 pts)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="dial-modal">
+  <div id="dial-box">
+    <img src="image13.jpg" alt="Cosmic Cipher" draggable="false">
+    <div id="dial-modal-title">✦ COSMIC CIPHER ✦</div>
+    <div id="dial-modal-hint">CLICK EACH ORB · CYCLE 0→9 · SET CORRECT SEQUENCE</div>
+    <button id="dial-close-btn" onclick="G.closeDial()">✕</button>
+    <div id="dial-action-row">
+      <button class="btn-3d yellow" onclick="G.checkDial()">⚡ DECODE</button>
+      <button class="btn-3d back"   onclick="G.closeDial()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!--
+  SCRIPT LOAD ORDER — critical:
+  1. gameState.js  already loaded in <head>
+  2. room2_nav_patch.js  wraps window.onload to patch G AFTER it initialises
+  3. room2_script.js  defines G and sets window.onload
+  This order ensures the nav patch intercepts G.toggleHint correctly.
+-->
+<script src="room2_nav_patch.js"></script>
+<script src="room2_script.js"></script>
+
+</body>
+</html>

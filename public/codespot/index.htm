@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeSpot — Power(x,n) Judge</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#050810;--base:#0b1017;--surf:#111827;--raised:#18202e;--hover:#1c2840;--active:#223050;
+  --bdr:#182035;--bdrlit:#263a5a;
+  --tx1:#dce8f8;--tx2:#607898;--tx3:#344860;
+  --blue:#4f9eff;--bdim:rgba(79,158,255,.12);
+  --green:#30d474;--gdim:rgba(48,212,116,.09);
+  --ora:#f0a030;--odim:rgba(240,160,48,.11);
+  --red:#ff4f62;--rdim:rgba(255,79,98,.11);
+  --purple:#a865ff;--pdim:rgba(168,101,255,.11);
+  --r4:4px;--r8:8px;
+  --fui:'Outfit',sans-serif;--fcode:'JetBrains Mono',monospace;
+  --navh:50px;
+}
+html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--void);color:var(--tx1)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(79,158,255,.045) 1px,transparent 1px);background-size:28px 28px}
+#nav{position:relative;z-index:50;height:var(--navh);
+  background:linear-gradient(180deg,rgba(17,24,39,.98),rgba(11,16,23,.98));
+  border-bottom:1px solid var(--bdr);display:flex;align-items:center;
+  padding:0 14px;gap:10px;box-shadow:0 1px 20px rgba(0,0,0,.5)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:900;font-size:15px;color:var(--tx1)}
+.logo-mark{width:30px;height:30px;border-radius:9px;font-size:14px;
+  background:linear-gradient(135deg,#3b82f6,#10d47a);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 18px rgba(79,158,255,.4),0 0 36px rgba(16,212,122,.1)}
+.nsep{width:1px;height:18px;background:var(--bdr)}
+.nbread{font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:5px}
+.cur{color:var(--tx1);font-weight:600}
+.nsp{flex:1}
+.badge{padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700}
+.b-hard{background:rgba(255,79,98,.11);color:var(--red);border:1px solid rgba(255,79,98,.28)}
+.b-pts{background:var(--gdim);color:var(--green);border:1px solid rgba(48,212,116,.25);font-size:12px;font-family:var(--fcode)}
+.engine-pill{display:flex;align-items:center;gap:6px;padding:3px 11px;border-radius:20px;
+  font-size:10.5px;font-weight:700;font-family:var(--fcode);
+  background:rgba(48,212,116,.07);border:1px solid rgba(48,212,116,.35);color:var(--green)}
+.epulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:ep 2s infinite}
+@keyframes ep{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.55)}}
+#app{position:relative;z-index:1;display:flex;height:calc(100vh - var(--navh));overflow:hidden}
+#left{width:41%;min-width:260px;max-width:680px;display:flex;flex-direction:column;
+  background:var(--base);border-right:1px solid var(--bdr);overflow:hidden}
+#rsz{width:4px;flex-shrink:0;background:var(--bdr);cursor:col-resize;transition:background .15s}
+#rsz:hover{background:var(--blue)}
+#right{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--base)}
+.ptabs{display:flex;background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 4px}
+.ptab{padding:11px 13px;font-size:11.5px;font-weight:600;color:var(--tx2);background:transparent;
+  border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;font-family:var(--fui)}
+.ptab:hover{color:var(--tx1)}.ptab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.pbody{flex:1;overflow-y:auto;padding:18px 16px;scrollbar-width:thin;scrollbar-color:var(--raised) transparent}
+.pbody::-webkit-scrollbar{width:4px}.pbody::-webkit-scrollbar-thumb{background:var(--raised)}
+.p-id{font-size:10px;font-weight:800;color:var(--blue);letter-spacing:1.2px;font-family:var(--fcode)}
+.p-title{font-size:19px;font-weight:900;letter-spacing:-.5px;line-height:1.2;margin:5px 0 9px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.tag{padding:2px 8px;background:var(--raised);border:1px solid var(--bdr);border-radius:3px;font-size:10.5px;color:var(--tx2);font-weight:500}
+.tag.a{background:var(--bdim);color:var(--blue);border-color:rgba(79,158,255,.22)}
+.tag.r{background:rgba(255,79,98,.08);color:var(--red);border-color:rgba(255,79,98,.22)}
+.tag.g{background:var(--gdim);color:var(--green);border-color:rgba(48,212,116,.22)}
+.pbody p{font-size:12.5px;line-height:1.9;color:rgba(220,232,248,.82);margin-bottom:9px}
+.pbody strong{color:var(--blue);font-weight:700}
+.sec{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--tx3);margin:18px 0 9px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.eg{background:var(--raised);border:1px solid var(--bdr);border-left:3px solid var(--blue);
+  border-radius:0 var(--r8) var(--r8) 0;padding:10px 13px;margin-bottom:8px;font-family:var(--fcode);font-size:11px}
+.eg .io{padding:2px 0}.ik{color:var(--tx2);margin-right:6px}.iv{color:var(--tx1)}
+.score-tbl{width:100%;border-collapse:collapse;border-radius:var(--r8);overflow:hidden;border:1px solid var(--bdr)}
+.score-tbl th{text-align:left;padding:6px 10px;background:var(--raised);font-size:9.5px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);border-bottom:1px solid var(--bdr);font-family:var(--fui)}
+.score-tbl td{padding:5.5px 10px;border-bottom:1px solid rgba(24,32,53,.7);font-family:var(--fcode);font-size:11px;color:var(--tx2)}
+.score-tbl tr:last-child td{border-bottom:none}
+.score-tbl tr:hover td{background:var(--raised)}
+.pts-g{color:var(--green);font-weight:800}.pts-p{color:var(--purple);font-weight:800}
+.pts-o{color:var(--ora);font-weight:800}.pts-r{color:var(--red);font-weight:800}
+.tc-cat{font-size:11px;font-weight:700;color:var(--blue);margin:14px 0 6px;display:flex;align-items:center;gap:7px}
+.tc-cat::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.tct{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--fcode)}
+.tct th{text-align:left;padding:4px 9px;font-weight:700;color:var(--tx3);font-size:9.5px;text-transform:uppercase;border-bottom:1px solid var(--bdr);font-family:var(--fui)}
+.tct td{padding:3.5px 9px;color:var(--tx2);border-bottom:1px solid rgba(24,32,53,.6)}
+.hcard{background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r8);margin-bottom:8px;overflow:hidden}
+.hcard.on{border-color:rgba(79,158,255,.2)}.hcard.lock{opacity:.4;pointer-events:none}
+.htrig{width:100%;padding:12px 14px;background:transparent;border:none;color:var(--tx1);
+  cursor:pointer;display:flex;align-items:center;gap:9px;text-align:left;font-family:var(--fui)}
+.htrig:hover{background:var(--hover)}
+.hnum{width:24px;height:24px;border-radius:50%;background:var(--bdim);border:1px solid rgba(79,158,255,.2);
+  display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;color:var(--blue);flex-shrink:0}
+.hlbl{flex:1;font-size:12px;font-weight:600}.htog{font-size:10px;color:var(--tx3)}
+.hbody{padding:0 14px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .2s;font-size:12px;color:var(--tx2);line-height:1.8}
+.hbody.open{max-height:300px;padding:10px 14px 13px;border-top:1px solid var(--bdr)}
+.hbody code{font-family:var(--fcode);background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora)}
+.ebar{height:42px;flex-shrink:0;background:var(--surf);border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;padding:0 11px;gap:7px}
+.lang-badge{display:flex;align-items:center;gap:6px;padding:4px 12px;
+  background:var(--bdim);border:1px solid rgba(79,158,255,.25);border-radius:20px;
+  font-size:11px;font-weight:800;color:var(--blue);font-family:var(--fcode)}
+.tbtn{padding:4px 10px;background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r4);
+  color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:var(--fui)}
+.tbtn:hover{color:var(--tx1);border-color:var(--bdrlit);background:var(--hover)}
+.ebs{flex:1}
+#cxchip{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;display:none;align-items:center;gap:5px}
+#cxchip.s15{display:flex;background:var(--gdim);color:var(--green);border:1px solid rgba(48,212,116,.25)}
+#cxchip.s9{display:flex;background:var(--pdim);color:var(--purple);border:1px solid rgba(168,101,255,.25)}
+#cxchip.s3{display:flex;background:var(--odim);color:var(--ora);border:1px solid rgba(240,160,48,.25)}
+#cxchip.s0{display:flex;background:var(--rdim);color:var(--red);border:1px solid rgba(255,79,98,.25)}
+.CodeMirror{height:100%!important;font-family:var(--fcode)!important;font-size:13px!important;
+  line-height:1.7!important;background:#0b1017!important;color:#dce8f8!important;padding:5px 0}
+.CodeMirror-gutters{background:#0b1017!important;border-right:1px solid #182035!important}
+.CodeMirror-linenumber{color:#263a5a!important;min-width:36px;padding-right:10px}
+.CodeMirror-activeline-background{background:#111827!important}
+.CodeMirror-selected{background:#1c2f54!important}
+.CodeMirror-cursor{border-left:2px solid var(--blue)!important}
+.CodeMirror-scroll{padding-bottom:50px}
+.cm-keyword{color:#4f9eff!important;font-weight:700}.cm-type{color:#f0a030!important}
+.cm-def{color:#30d474!important}.cm-variable{color:#dce8f8!important}
+.cm-number{color:#79c0ff!important}.cm-string{color:#a5d6ff!important}
+.cm-comment{color:#3a5070!important;font-style:italic}.cm-operator{color:#c9d1d9!important}
+.cm-builtin{color:#e3b341!important}.cm-matchingbracket{background:rgba(79,158,255,.18)!important}
+#editor-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+#editor-wrap .CodeMirror{position:absolute;inset:0}
+#bot{height:220px;flex-shrink:0;border-top:1px solid var(--bdr);display:flex;flex-direction:column;background:var(--surf)}
+.bbar{height:40px;flex-shrink:0;display:flex;align-items:center;padding:0 11px;gap:7px;border-bottom:1px solid var(--bdr)}
+.btab{padding:4px 10px;font-size:11px;font-weight:600;color:var(--tx2);background:transparent;
+  border:none;cursor:pointer;border-radius:var(--r4);transition:all .2s;font-family:var(--fui)}
+.btab:hover{color:var(--tx1);background:var(--raised)}.btab.on{background:var(--raised);color:var(--tx1)}
+.bsp{flex:1}
+.btn-run,.btn-sub{padding:6px 15px;border-radius:var(--r8);font-size:12px;
+  font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;font-family:var(--fui)}
+.btn-run{background:var(--raised);border:1px solid var(--bdr);color:var(--tx1)}
+.btn-run:hover{background:var(--hover);border-color:var(--bdrlit)}
+.btn-sub{background:linear-gradient(135deg,rgba(48,212,116,.18),rgba(48,212,116,.08));
+  border:1px solid rgba(48,212,116,.3);color:var(--green)}
+.btn-sub:hover{background:linear-gradient(135deg,rgba(48,212,116,.3),rgba(48,212,116,.15));border-color:var(--green)}
+.btn-run:disabled,.btn-sub:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.bcontent{flex:1;overflow-y:auto;overflow-x:auto;padding:9px 13px;
+  font-family:var(--fcode);font-size:11.5px;line-height:1.7;scrollbar-width:thin;scrollbar-color:var(--raised) transparent}
+.bcontent::-webkit-scrollbar{width:4px;height:4px}.bcontent::-webkit-scrollbar-thumb{background:var(--raised)}
+.ol{padding:1.5px 0}.oi{color:var(--blue)}.oer{color:var(--red)}.own{color:var(--ora)}
+.err-block{background:rgba(255,79,98,.06);border-left:3px solid var(--red);padding:7px 12px;margin:2px 0;
+  border-radius:0 var(--r4) var(--r4) 0;font-family:var(--fcode);font-size:11px;line-height:1.7;
+  white-space:pre-wrap;word-break:break-word;color:#ff8090}
+.warn-block{background:rgba(240,160,48,.05);border-left:3px solid var(--ora);padding:6px 12px;margin:2px 0;
+  border-radius:0 var(--r4) var(--r4) 0;font-family:var(--fcode);font-size:11px;line-height:1.7;
+  white-space:pre-wrap;color:#f0b860}
+.trg{display:grid;grid-template-columns:28px 1fr 90px 90px 48px;width:100%}
+.trh{padding:4px 7px;font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);border-bottom:1px solid var(--bdr);font-family:var(--fui)}
+.trc{padding:3px 7px;font-size:11px;color:var(--tx2);border-bottom:1px solid rgba(24,32,53,.6);display:flex;align-items:center}
+.ov{display:none;position:fixed;inset:0;z-index:300;align-items:center;justify-content:center}
+.ov.show{display:flex}
+.ov::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,rgba(0,15,50,.97),rgba(2,4,14,.99));
+  backdrop-filter:blur(10px)}
+.arc-card{position:relative;z-index:1;width:min(520px,92vw);border-radius:20px;overflow:hidden;
+  background:linear-gradient(145deg,rgba(11,18,34,.98),rgba(6,10,22,.99));
+  border:1px solid var(--bdrlit);box-shadow:0 0 80px rgba(79,158,255,.1)}
+.mhead{padding:20px 24px 16px;border-bottom:1px solid var(--bdr)}
+.mt{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.mbody{padding:20px 24px}
+.mft{padding:16px 24px;border-top:1px solid var(--bdr);display:flex;gap:8px;justify-content:flex-end}
+.mbtn{padding:8px 20px;border-radius:var(--r8);font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--fui);transition:all .2s}
+.mbtn-g{background:linear-gradient(135deg,rgba(48,212,116,.2),rgba(48,212,116,.1));border:1px solid rgba(48,212,116,.35);color:var(--green)}
+.mbtn-g:hover{background:rgba(48,212,116,.28);border-color:var(--green)}
+.mbtn-r{background:var(--raised);border:1px solid var(--bdr);color:var(--tx2)}
+.mbtn-r:hover{color:var(--tx1);border-color:var(--bdrlit)}
+.mclose{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--tx3);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:var(--r4)}
+.mclose:hover{color:var(--tx1);background:var(--raised)}
+.res-icon{font-size:44px;text-align:center;margin-bottom:10px}
+.res-title{font-size:22px;font-weight:900;text-align:center;letter-spacing:-.4px;margin-bottom:6px}
+.res-sub{font-size:11px;color:var(--tx2);text-align:center;margin-bottom:18px;letter-spacing:.8px;font-family:var(--fcode);text-transform:uppercase}
+.res-score{font-size:52px;font-weight:900;text-align:center;font-family:var(--fcode);margin:6px 0}
+.res-max{font-size:12px;color:var(--tx3);text-align:center;font-family:var(--fcode)}
+.res-algo{display:inline-flex;align-items:center;gap:7px;padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--fcode);margin-top:14px}
+#hint-tracker{display:flex;align-items:center;justify-content:space-between;
+  background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r8);padding:9px 13px;margin-bottom:12px}
+.h-intro{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:14px;padding:9px 13px;
+  background:var(--raised);border-radius:var(--r8);border-left:3px solid var(--ora)}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(79,158,255,.2);
+  border-top-color:var(--blue);border-radius:50%;animation:sp .6s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="nav">
+  <div class="logo">
+    <div class="logo-mark"><i class="fa-solid fa-bolt" style="color:#fff;font-size:13px"></i></div>
+    CodeSpot
+  </div>
+  <div class="nsep"></div>
+  <div class="nbread">
+    <span style="color:var(--tx3)">Problems</span>
+    <span style="color:var(--tx3)">›</span>
+    <span class="cur">Power(x, n) — Fast Exponentiation</span>
+  </div>
+  <div class="nsp"></div>
+  <span class="badge b-hard">Hard</span>
+  <span class="badge b-pts" id="score-badge">0 / 15 pts</span>
+  <div class="engine-pill"><span class="epulse"></span>JS Judge · No API Needed</div>
+</div>
+
+<div id="app">
+  <div id="left">
+    <div class="ptabs">
+      <button class="ptab on" onclick="stab(this,'t-desc')">Description</button>
+      <button class="ptab" onclick="stab(this,'t-tc')">Test Cases</button>
+      <button class="ptab" onclick="stab(this,'t-hint')">Hints</button>
+    </div>
+
+    <!-- DESCRIPTION TAB -->
+    <div id="t-desc" class="pbody">
+      <div class="p-id">CS-PWR · FUNCTION CHALLENGE</div>
+      <div class="p-title">Power(x, n) — Fast Exponentiation</div>
+      <div class="tags">
+        <span class="tag r">Hard</span>
+        <span class="tag a">Math</span>
+        <span class="tag a">Divide &amp; Conquer</span>
+        <span class="tag a">Bit Manipulation</span>
+        <span class="tag g">15 pts</span>
+      </div>
+      <p>Implement <strong>power(x, n)</strong> that computes <strong>x raised to the power n</strong>. You must write only the function body — the signature is fixed.</p>
+      <div class="eg" style="margin-bottom:14px">
+        <div style="color:var(--green);font-family:var(--fcode);font-size:12px">long long power(long long x, long long n)</div>
+      </div>
+      <p>Your function must handle all test cases including edge cases like x=0, n=0, negative bases, and large values.</p>
+
+      <div class="sec">Examples</div>
+      <div class="eg"><div class="io"><span class="ik">Input:</span><span class="iv">x=2, n=10</span></div><div class="io"><span class="ik">Output:</span><span class="iv">1024</span></div></div>
+      <div class="eg"><div class="io"><span class="ik">Input:</span><span class="iv">x=3, n=5</span></div><div class="io"><span class="ik">Output:</span><span class="iv">243</span></div></div>
+      <div class="eg"><div class="io"><span class="ik">Input:</span><span class="iv">x=5, n=0</span></div><div class="io"><span class="ik">Output:</span><span class="iv">1</span></div></div>
+      <div class="eg"><div class="io"><span class="ik">Input:</span><span class="iv">x=-2, n=3</span></div><div class="io"><span class="ik">Output:</span><span class="iv">-8</span></div></div>
+
+      <div class="sec">Scoring</div>
+      <table class="score-tbl">
+        <thead><tr><th>Score</th><th>Method</th><th>Complexity</th></tr></thead>
+        <tbody>
+          <tr><td class="pts-g">15 pts</td><td>Iterative Binary / Bitwise Exp.</td><td style="font-family:var(--fcode);color:var(--green)">O(log n) time, O(1) space</td></tr>
+          <tr><td class="pts-p">9 pts</td><td>Recursive Fast (Divide &amp; Conquer)</td><td style="font-family:var(--fcode);color:var(--purple)">O(log n) time, O(log n) space</td></tr>
+          <tr><td class="pts-o">3 pts</td><td>Naive Loop / Simple Recursion</td><td style="font-family:var(--fcode);color:var(--ora)">O(n)</td></tr>
+          <tr><td class="pts-r">0 pts</td><td>Wrong answer / Missing function</td><td>—</td></tr>
+        </tbody>
+      </table>
+
+      <div class="sec">Rules</div>
+      <ul style="padding-left:0;list-style:none">
+        <li style="font-size:12px;color:var(--tx2);padding:3.5px 0;display:flex;gap:8px"><span style="color:var(--blue);font-weight:800;flex-shrink:0">›</span>Function name must be exactly <code style="background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora);font-family:var(--fcode)">power</code></li>
+        <li style="font-size:12px;color:var(--tx2);padding:3.5px 0;display:flex;gap:8px"><span style="color:var(--blue);font-weight:800;flex-shrink:0">›</span>Parameters must be <code style="background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora);font-family:var(--fcode)">long long x, long long n</code></li>
+        <li style="font-size:12px;color:var(--tx2);padding:3.5px 0;display:flex;gap:8px"><span style="color:var(--blue);font-weight:800;flex-shrink:0">›</span>Return type must be <code style="background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora);font-family:var(--fcode)">long long</code></li>
+        <li style="font-size:12px;color:var(--tx2);padding:3.5px 0;display:flex;gap:8px"><span style="color:var(--blue);font-weight:800;flex-shrink:0">›</span>You may add helper functions (e.g. <code style="background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora);font-family:var(--fcode)">powerHelper</code>)</li>
+        <li style="font-size:12px;color:var(--tx2);padding:3.5px 0;display:flex;gap:8px"><span style="color:var(--blue);font-weight:800;flex-shrink:0">›</span>No <code style="background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora);font-family:var(--fcode)">printf</code>, <code style="background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora);font-family:var(--fcode)">scanf</code>, or <code style="background:var(--active);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ora);font-family:var(--fcode)">main()</code> — function only</li>
+        <li style="font-size:12px;color:var(--tx2);padding:3.5px 0;display:flex;gap:8px"><span style="color:var(--blue);font-weight:800;flex-shrink:0">›</span>Constraints: 0 ≤ n ≤ 30 &nbsp;|&nbsp; -100 ≤ x ≤ 100</li>
+      </ul>
+    </div>
+
+    <!-- TEST CASES TAB -->
+    <div id="t-tc" class="pbody" style="display:none">
+      <div class="tc-cat">① Basic Cases</div>
+      <table class="tct"><thead><tr><th>#</th><th>x</th><th>n</th><th>Expected</th></tr></thead><tbody>
+        <tr><td>1</td><td>2</td><td>10</td><td style="color:var(--green)">1024</td></tr>
+        <tr><td>2</td><td>3</td><td>5</td><td style="color:var(--green)">243</td></tr>
+        <tr><td>3</td><td>5</td><td>3</td><td style="color:var(--green)">125</td></tr>
+        <tr><td>4</td><td>7</td><td>4</td><td style="color:var(--green)">2401</td></tr>
+        <tr><td>5</td><td>10</td><td>6</td><td style="color:var(--green)">1000000</td></tr>
+      </tbody></table>
+      <div class="tc-cat">② Edge Cases</div>
+      <table class="tct"><thead><tr><th>#</th><th>x</th><th>n</th><th>Expected</th></tr></thead><tbody>
+        <tr><td>6</td><td>5</td><td>0</td><td style="color:var(--green)">1</td></tr>
+        <tr><td>7</td><td>0</td><td>5</td><td style="color:var(--green)">0</td></tr>
+        <tr><td>8</td><td>1</td><td>100</td><td style="color:var(--green)">1</td></tr>
+        <tr><td>9</td><td>100</td><td>1</td><td style="color:var(--green)">100</td></tr>
+        <tr><td>10</td><td>0</td><td>0</td><td style="color:var(--green)">1</td></tr>
+      </tbody></table>
+      <div class="tc-cat">③ Negative Base</div>
+      <table class="tct"><thead><tr><th>#</th><th>x</th><th>n</th><th>Expected</th></tr></thead><tbody>
+        <tr><td>11</td><td>-2</td><td>3</td><td style="color:var(--green)">-8</td></tr>
+        <tr><td>12</td><td>-2</td><td>4</td><td style="color:var(--green)">16</td></tr>
+        <tr><td>13</td><td>-3</td><td>5</td><td style="color:var(--green)">-243</td></tr>
+        <tr><td>14</td><td>-5</td><td>2</td><td style="color:var(--green)">25</td></tr>
+      </tbody></table>
+      <div class="tc-cat">④ Larger Values</div>
+      <table class="tct"><thead><tr><th>#</th><th>x</th><th>n</th><th>Expected</th></tr></thead><tbody>
+        <tr><td>15</td><td>2</td><td>30</td><td style="color:var(--green)">1073741824</td></tr>
+        <tr><td>16</td><td>3</td><td>15</td><td style="color:var(--green)">14348907</td></tr>
+        <tr><td>17</td><td>4</td><td>12</td><td style="color:var(--green)">16777216</td></tr>
+        <tr><td>18</td><td>6</td><td>8</td><td style="color:var(--green)">1679616</td></tr>
+      </tbody></table>
+      <div class="tc-cat">⑤ Special / Stress</div>
+      <table class="tct"><thead><tr><th>#</th><th>x</th><th>n</th><th>Expected</th></tr></thead><tbody>
+        <tr><td>19</td><td>1</td><td>30</td><td style="color:var(--green)">1</td></tr>
+        <tr><td>20</td><td>-1</td><td>29</td><td style="color:var(--green)">-1</td></tr>
+        <tr><td>21</td><td>-1</td><td>30</td><td style="color:var(--green)">1</td></tr>
+        <tr><td>22</td><td>2</td><td>20</td><td style="color:var(--green)">1048576</td></tr>
+        <tr><td>23</td><td>9</td><td>9</td><td style="color:var(--green)">387420489</td></tr>
+      </tbody></table>
+    </div>
+
+    <!-- HINTS TAB -->
+    <div id="t-hint" class="pbody" style="display:none">
+      <div class="h-intro">💡 Each hint costs <strong style="color:var(--red)">−3 points</strong>. Hints unlock one at a time.</div>
+      <div id="hint-tracker">
+        <div style="font-size:12px;color:var(--tx2)"><i class="fa-solid fa-lightbulb" style="color:var(--ora);margin-right:6px"></i>Hints: <span id="hints-used" style="color:var(--tx1);font-weight:700">0 / 3</span></div>
+        <div style="font-size:12px;color:var(--tx2)">Max: <span id="max-pts" style="color:var(--green);font-weight:800;font-size:14px">15</span> pts</div>
+      </div>
+      <div class="hcard on" id="hc1">
+        <button class="htrig" onclick="revHint(1)">
+          <div class="hnum">1</div><span class="hlbl">The Core Divide Insight</span>
+          <span id="hcost1" style="font-size:10px;background:var(--rdim);color:var(--red);border:1px solid rgba(255,79,98,.22);padding:2px 6px;border-radius:10px;margin-right:4px">−3 pts</span>
+          <span class="htog" id="ht1">▶ Reveal</span>
+        </button>
+        <div class="hbody" id="hb1">
+          <div style="color:var(--ora);font-size:11px;margin-bottom:7px;font-weight:700">💡 HINT 1 — Halving the Problem</div>
+          Instead of multiplying x by itself n times (O(n)), what if you split n in half each step?<br><br>
+          <code>x^n = x^(n/2) * x^(n/2)</code><br><br>
+          Each step halves n — so you only need ~log₂(n) steps total.
+        </div>
+      </div>
+      <div class="hcard lock" id="hc2">
+        <button class="htrig" onclick="revHint(2)">
+          <div class="hnum">2</div><span class="hlbl">Odd vs Even Exponent</span>
+          <span id="hcost2" style="font-size:10px;background:var(--rdim);color:var(--red);border:1px solid rgba(255,79,98,.22);padding:2px 6px;border-radius:10px;margin-right:4px">−3 pts</span>
+          <span class="htog" id="ht2">🔒 Locked</span>
+        </button>
+        <div class="hbody" id="hb2">
+          <div style="color:var(--ora);font-size:11px;margin-bottom:7px;font-weight:700">💡 HINT 2 — Handle Odd Exponents</div>
+          If n is <strong style="color:var(--green)">even</strong>: <code>x^n = half * half</code><br>
+          If n is <strong style="color:var(--red)">odd</strong>: <code>x^n = x * half * half</code><br><br>
+          Detect odd with bitwise AND: <code>if (n & 1)</code> — much faster than <code>n % 2</code>.
+        </div>
+      </div>
+      <div class="hcard lock" id="hc3">
+        <button class="htrig" onclick="revHint(3)">
+          <div class="hnum">3</div><span class="hlbl">The Iterative Secret (O(1) Space)</span>
+          <span id="hcost3" style="font-size:10px;background:var(--rdim);color:var(--red);border:1px solid rgba(255,79,98,.22);padding:2px 6px;border-radius:10px;margin-right:4px">−3 pts</span>
+          <span class="htog" id="ht3">🔒 Locked</span>
+        </button>
+        <div class="hbody" id="hb3">
+          <div style="color:var(--ora);font-size:11px;margin-bottom:7px;font-weight:700">💡 HINT 3 — Go Iterative for Full Marks</div>
+          Start with <code>result = 1</code>. Loop while n &gt; 0:<br>
+          &nbsp;&nbsp;• If <code>n &amp; 1</code> → <code>result *= x</code><br>
+          &nbsp;&nbsp;• Then <code>x *= x</code> and <code>n &gt;&gt;= 1</code><br><br>
+          This avoids recursion stack and runs in O(log n) time + O(1) space = full 15 pts.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rsz"></div>
+
+  <div id="right">
+    <div class="ebar">
+      <div class="lang-badge"><i class="fa-solid fa-c" style="font-size:11px"></i>&nbsp;C11</div>
+      <button class="tbtn" onclick="resetCode()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      <button class="tbtn" onclick="copyCode()"><i class="fa-regular fa-copy"></i> Copy</button>
+      <div class="ebs"></div>
+      <div id="cxchip"></div>
+    </div>
+    <div id="editor-wrap"><textarea id="cm-src"></textarea></div>
+    <div id="bot">
+      <div class="bbar">
+        <button class="btab on" onclick="sbtab(this,'b-out')">Output</button>
+        <button class="btab" onclick="sbtab(this,'b-tr')">Test Results</button>
+        <div class="bsp"></div>
+        <button class="btn-run" id="btn-run" onclick="runCode()">
+          <i class="fa-solid fa-play"></i> Run
+        </button>
+        <button class="btn-sub" id="btn-sub" onclick="submitCode()">
+          <i class="fa-solid fa-paper-plane"></i> Submit
+        </button>
+      </div>
+      <div id="b-out" class="bcontent">
+        <div class="ol" style="color:var(--tx3)">// Write your power() function above and click Run or Submit</div>
+        <div class="ol" style="color:var(--tx3)">// No external compiler needed — judge runs in your browser</div>
+      </div>
+      <div id="b-tr" class="bcontent" style="display:none">
+        <div class="ol" style="color:var(--tx3)">// Click Submit to run all 23 test cases</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Result Modal -->
+<div class="ov" id="m-result">
+  <div class="arc-card">
+    <button class="mclose" onclick="closeM('m-result')">✕</button>
+    <div class="mbody" style="text-align:center;padding:30px 28px 20px">
+      <div class="res-icon" id="res-icon">🏆</div>
+      <div class="res-title" id="res-title">All Tests Passed!</div>
+      <div class="res-sub" id="res-sub">Perfect Solution</div>
+      <div class="res-score" id="res-score" style="color:var(--green)">15</div>
+      <div class="res-max">/ 15 pts</div>
+      <div style="display:flex;justify-content:center;margin-top:12px">
+        <div class="res-algo" id="res-algo" style="background:var(--gdim);color:var(--green);border:1px solid rgba(48,212,116,.3)">⚡ O(log n) Iterative — Optimal</div>
+      </div>
+    </div>
+    <div class="mft">
+      <button class="mbtn mbtn-g" onclick="closeM('m-result')">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hint Confirm Modal -->
+<div class="ov" id="m-hint-confirm">
+  <div class="arc-card">
+    <div class="mhead"><div class="mt" style="color:var(--ora)">💡 Reveal Hint?</div></div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--tx2);line-height:1.8;margin-bottom:10px">This hint costs <strong style="color:var(--red)">−3 points</strong> from your maximum possible score.</p>
+      <p style="font-size:13px;color:var(--tx2)">Maximum score after this hint: <strong id="hc-after" style="color:var(--ora);font-size:16px">12 pts</strong></p>
+    </div>
+    <div class="mft">
+      <button class="mbtn mbtn-r" onclick="closeM('m-hint-confirm')">Cancel</button>
+      <button class="mbtn mbtn-g" id="hc-confirm-btn">Reveal Hint</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TEMPLATE = `long long power(long long x, long long n)
+{
+    // Write your solution here
+    // Constraints: 0 <= n <= 30, -100 <= x <= 100
+    // Return x raised to the power n
+
+}`;
+
+// ══════════════════════════════════════════
+// ALL 23 TEST CASES (exhaustive coverage)
+// ══════════════════════════════════════════
+const TESTS = [
+  // Basic
+  {x:2n,  n:10n, exp:1024n,      label:'2^10 (basic power of 2)'},
+  {x:3n,  n:5n,  exp:243n,       label:'3^5 (basic)'},
+  {x:5n,  n:3n,  exp:125n,       label:'5^3 (basic)'},
+  {x:7n,  n:4n,  exp:2401n,      label:'7^4 (basic)'},
+  {x:10n, n:6n,  exp:1000000n,   label:'10^6 (large result)'},
+  // Edge
+  {x:5n,  n:0n,  exp:1n,         label:'5^0 (zero exponent)'},
+  {x:0n,  n:5n,  exp:0n,         label:'0^5 (zero base)'},
+  {x:1n,  n:100n,exp:1n,         label:'1^100 (base=1, large n)'},
+  {x:100n,n:1n,  exp:100n,       label:'100^1 (n=1)'},
+  {x:0n,  n:0n,  exp:1n,         label:'0^0 (mathematical convention=1)'},
+  // Negative base
+  {x:-2n, n:3n,  exp:-8n,        label:'(-2)^3 (neg base, odd exp)'},
+  {x:-2n, n:4n,  exp:16n,        label:'(-2)^4 (neg base, even exp)'},
+  {x:-3n, n:5n,  exp:-243n,      label:'(-3)^5 (neg base, odd)'},
+  {x:-5n, n:2n,  exp:25n,        label:'(-5)^2 (neg base, even)'},
+  // Larger
+  {x:2n,  n:30n, exp:1073741824n,label:'2^30 (max n stress)'},
+  {x:3n,  n:15n, exp:14348907n,  label:'3^15 (mid-large)'},
+  {x:4n,  n:12n, exp:16777216n,  label:'4^12'},
+  {x:6n,  n:8n,  exp:1679616n,   label:'6^8'},
+  // Special
+  {x:1n,  n:30n, exp:1n,         label:'1^30 (always 1)'},
+  {x:-1n, n:29n, exp:-1n,        label:'(-1)^29 (odd → -1)'},
+  {x:-1n, n:30n, exp:1n,         label:'(-1)^30 (even → 1)'},
+  {x:2n,  n:20n, exp:1048576n,   label:'2^20'},
+  {x:9n,  n:9n,  exp:387420489n, label:'9^9 (large)'},
+];
+
+let editor, hintPenalty=0, hintsRevealed=0, hintsUnlocked=1;
+const hintRevealed=[false,false,false];
+let _worker=null;
+
+window.addEventListener('load',()=>{
+  editor=CodeMirror.fromTextArea(document.getElementById('cm-src'),{
+    mode:'text/x-csrc',lineNumbers:true,matchBrackets:true,autoCloseBrackets:true,
+    styleActiveLine:true,indentUnit:4,tabSize:4,indentWithTabs:false,lineWrapping:false,
+    extraKeys:{
+      'Tab':cm=>cm.execCommand('indentMore'),
+      'Shift-Tab':cm=>cm.execCommand('indentLess'),
+      'Ctrl-/':'toggleComment',
+    }
+  });
+  editor.setValue(TEMPLATE);
+  editor.refresh();
+});
+
+function getCode(){return editor?editor.getValue():''}
+function resetCode(){editor&&editor.setValue(TEMPLATE);clearChip();document.getElementById('b-out').innerHTML='<div class="ol" style="color:var(--tx3)">// Code reset.</div>';}
+function copyCode(){navigator.clipboard.writeText(getCode()).then(()=>{}).catch(()=>{});}
+function stab(b,id){['t-desc','t-tc','t-hint'].forEach(t=>document.getElementById(t).style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function sbtab(b,id){['b-out','b-tr'].forEach(t=>document.getElementById(t).style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.btab').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function showModal(id){document.getElementById(id).classList.add('show')}
+function closeM(id){document.getElementById(id).classList.remove('show')}
+function setButtons(d){['btn-run','btn-sub'].forEach(id=>document.getElementById(id).disabled=d);}
+function clearChip(){const c=document.getElementById('cxchip');c.className='';c.textContent='';}
+function setChip(cls,txt){const c=document.getElementById('cxchip');c.className=cls;c.textContent=txt;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ══════════════════════════════════════════
+// STATIC VALIDATOR (GCC-quality errors)
+// ══════════════════════════════════════════
+function staticValidate(raw){
+  const code=raw.replace(/\/\/[^\n]*/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
+  const errs=[], warns=[];
+
+  if(!code.trim()){
+    errs.push('error: empty file — write your power() function');
+    return{errs,warns};
+  }
+  if(!/\bpower\b/.test(code))
+    errs.push("error: function 'power' not found.\n       Expected signature:\n         long long power(long long x, long long n)");
+  else if(!/long\s+long\s+power\s*\(/.test(code)){
+    if(/\bint\s+power\s*\(/.test(code))
+      errs.push("error: wrong return type for 'power'.\n       Found:    int power(long long x, long long n)\n       Expected: long long power(long long x, long long n)\n       Fix: change 'int' → 'long long' before power");
+    else if(/\bvoid\s+power\s*\(/.test(code))
+      errs.push("error: 'power' cannot return void — must return long long.");
+    else
+      errs.push("error: incorrect signature for 'power'.\n       Required: long long power(long long x, long long n)");
+  } else {
+    // Signature OK — check params
+    const sigMatch=code.match(/long\s+long\s+power\s*\(([^)]*)\)/);
+    if(sigMatch){
+      const params=sigMatch[1];
+      if(!/long\s+long/.test(params))
+        errs.push("error: parameters of 'power' must be 'long long', not 'int'.\n       Fix: long long power(long long x, long long n)");
+      if(!/,/.test(params))
+        errs.push("error: 'power' requires 2 parameters (x and n), found 1 or none.");
+    }
+    // Check body
+    const bodyStart=code.indexOf('{',code.search(/long\s+long\s+power/));
+    if(bodyStart!==-1){
+      let depth=0,body='',i=bodyStart;
+      for(;i<code.length;i++){if(code[i]==='{')depth++;else if(code[i]==='}'){depth--;if(depth===0)break;}if(depth>0&&i>bodyStart)body+=code[i];}
+      if(!body.trim())
+        errs.push("error: function body of 'power' is empty.\n       Add your implementation inside the { }.");
+      else if(!/\breturn\b/.test(body))
+        errs.push("error: control reaches end of function 'power' without a return statement.\n       Add: return result;  before the closing }");
+    }
+  }
+
+  if(/\bprintf\b/.test(code))
+    warns.push("warning: 'printf' found — I/O not allowed inside power().\n         The judge calls your function directly. Remove printf.");
+  if(/\bscanf\b/.test(code))
+    warns.push("warning: 'scanf' found — no input required inside power().\n         Remove scanf; x and n are passed as parameters.");
+  if(/\bint\s+main\s*\(/.test(code))
+    warns.push("warning: 'main()' found but ignored by judge.\n         Only power() is evaluated.");
+  if(/#include\s*<math\.h>/.test(code))
+    warns.push("warning: <math.h> included — exp/log approach detected.\n         Floating-point precision errors will likely cause wrong answers.");
+  if(/\bpow\s*\(/.test(code))
+    errs.push("error: 'pow()' from math.h gives floating-point results — wrong for integers.\n       Implement binary exponentiation manually instead.");
+
+  return{errs,warns};
+}
+
+// ══════════════════════════════════════════
+// COMPLEXITY ANALYSER
+// ══════════════════════════════════════════
+function analyzeComplexity(raw){
+  const code=raw.replace(/\/\/[^\n]*/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
+  const hasWhile=/\bwhile\s*\(/.test(code);
+  const hasFor=/\bfor\s*\(/.test(code);
+  const hasRecursive=/power\s*\(|powerHelper\s*\(/.test(code.replace(/long\s+long\s+power\s*\(/g,'@@'));
+  const hasHalfing=/n\s*\/=?\s*2|n\s*>>=\s*1|n\s*>>/.test(code);
+  const hasNestedLoop=(/for\s*\([^{]*\{[^}]*for\s*\(/.test(code))||(/while\s*\([^{]*\{[^}]*while\s*\(/.test(code));
+  const isIterOptimal=(hasWhile||hasFor)&&hasHalfing&&!hasNestedLoop&&!hasRecursive;
+  const isRecursiveLog=hasRecursive&&hasHalfing&&!hasNestedLoop;
+  const isTailRec=hasRecursive&&/powerHelper/.test(code)&&hasHalfing;
+  const isNaiveLoop=(hasFor||hasWhile)&&!hasHalfing&&!hasRecursive;
+  const isSimpleRec=hasRecursive&&!hasHalfing;
+  if(isIterOptimal) return{score:15,label:'⚡ Iterative O(log n) — 15 pts',cls:'s15'};
+  if(isTailRec||isRecursiveLog) return{score:9,label:'◈ Recursive O(log n) — 9 pts',cls:'s9'};
+  if(isNaiveLoop||isSimpleRec) return{score:3,label:'⚠ O(n) Approach — 3 pts',cls:'s3'};
+  return{score:0,label:'? Approach unknown',cls:'s0'};
+}
+
+// ══════════════════════════════════════════
+// C → JS TRANSPILER (handles all valid approaches)
+// ══════════════════════════════════════════
+function transpile(raw){
+  let code=raw.replace(/\/\/[^\n]*/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
+  code=code.replace(/#include[^\n]*/g,'');
+
+  // Find all functions
+  const funcPattern=/(?:long\s+long|int)\s+(\w+)\s*\(([^)]*)\)\s*\{/g;
+  let m, funcs=[];
+  while((m=funcPattern.exec(code))!==null){
+    const name=m[1], paramStr=m[2], startAt=m.index;
+    const openBrace=code.indexOf('{',startAt);
+    let depth=0,i=openBrace,endAt=-1;
+    while(i<code.length){if(code[i]==='{')depth++;else if(code[i]==='}'){depth--;if(depth===0){endAt=i;break;}}i++;}
+    if(endAt===-1) return{ok:false,err:`error: unmatched braces in function '${name}'.\n       Every '{' must have a matching '}'.`};
+    const body=code.slice(openBrace+1,endAt);
+    const params=paramStr.split(',').map(p=>{const parts=p.trim().split(/\s+/);return parts[parts.length-1].replace(/\*/g,'');}).filter(Boolean);
+    funcs.push({name,params,body});
+  }
+
+  if(funcs.length===0) return{ok:false,err:"error: no function definitions found.\n       Write your power() function body."};
+
+  const powerFn=funcs.find(f=>f.name==='power');
+  if(!powerFn) return{ok:false,err:"error: function 'power' not found after parsing.\n       Check your function signature carefully."};
+  if(!/\breturn\b/.test(powerFn.body)) return{ok:false,err:"error: 'power' has no return statement.\n       Your function must return the computed value."};
+
+  let jsOut='';
+  for(const fn of funcs){
+    const bodyJS=transpileBody(fn.body, fn.name);
+    if(!bodyJS.ok) return bodyJS;
+    jsOut+=`function ${fn.name}(${fn.params.join(',')}){\n${bodyJS.code}\n}\n`;
+  }
+  return{ok:true,js:jsOut};
+}
+
+function transpileBody(body, fname){
+  if(/\bprintf\b/.test(body)) return{ok:false,err:`error: 'printf' is not allowed inside '${fname}'.\n       Remove all printf statements — the judge captures return values directly.`};
+  if(/\bpow\s*\(/.test(body)) return{ok:false,err:`error: math.h pow() is not supported.\n       Implement your own binary exponentiation.`};
+
+  let b=body;
+
+  // Validate: no array-style access or other unsupported constructs
+  // These would cause confusing errors in the JS worker
+
+  // Convert all type declarations for BigInt-based arithmetic
+  // Order matters: do long long first
+  b=b.replace(/\blong\s+long\s+(\w+)\s*=\s*(-?\d+)/g,(_,v,n)=>`let ${v}=${n}n`);
+  b=b.replace(/\blong\s+long\s+(\w+)\s*;/g,(_,v)=>`let ${v}=0n;`);
+  b=b.replace(/\blong\s+long\s+(\w+)\s*=/g,(_,v)=>`let ${v}=`);
+
+  // for-loop variable declarations
+  b=b.replace(/\bfor\s*\(\s*(?:long\s+long|int)\s+(?=\w)/g,'for(let ');
+  // remaining int declarations
+  b=b.replace(/\bint\s+(?=\w)/g,'let ');
+
+  // Convert bare numeric literals to BigInt ONLY when not already n-suffixed
+  // Strategy: parse carefully — only convert standalone integers
+  b=b.replace(/(?<![.\w'"])(-?\b\d+\b)(?!n)(?!\s*\.\d)/g,(match,num)=>{
+    // Skip if it looks like an array index or bit shift amount directly
+    return `${num}n`;
+  });
+
+  // Fix bit-shift amount suffix
+  b=b.replace(/>>=\s*(\d+)n/g,(_,d)=>`>>= ${d}n`);
+  b=b.replace(/<<=\s*(\d+)n/g,(_,d)=>`<<= ${d}n`);
+  // Fix bitwise AND constant
+  b=b.replace(/&\s*(\d+)n/g,(_,d)=>`& ${d}n`);
+
+  // Fix % operator for BigInt  (BigInt % works natively)
+  return{ok:true,code:b};
+}
+
+// ══════════════════════════════════════════
+// JUDGE ENGINE
+// ══════════════════════════════════════════
+function buildWorker(jsCode, tests){
+  const workerSrc=`
+self.onmessage = function(ev) {
+  try {
+    ${jsCode}
+    var tests = ev.data;
+    var results = [];
+    for (var i = 0; i < tests.length; i++) {
+      var t = tests[i];
+      try {
+        var got = power(BigInt(t.x), BigInt(t.n));
+        results.push({ ok: true, val: got.toString() });
+      } catch(re) {
+        results.push({ ok: false, err: re.message, fatal: false });
+      }
+    }
+    self.postMessage({ type: 'done', results: results });
+  } catch(ce) {
+    self.postMessage({ type: 'compileErr', msg: ce.message });
+  }
+};`;
+  const blob=new Blob([workerSrc],{type:'application/javascript'});
+  return new Worker(URL.createObjectURL(blob));
+}
+
+function runJudge(tests, onDone, onErr, timeoutMs=5000){
+  const conv=transpile(getCode());
+  if(!conv.ok){onErr(conv.err);return;}
+  setButtons(true);
+  const w=buildWorker(conv.js, tests.map(t=>({x:t.x.toString(),n:t.n.toString()})));
+  _worker=w;
+  const tle=setTimeout(()=>{
+    w.terminate();_worker=null;
+    onErr("⏱ Time Limit Exceeded (5 seconds)\n\nYour code ran too long — likely O(n) loop on large values.\nHint: use binary exponentiation (halve n each step with >>= 1).");
+    setButtons(false);
+  },timeoutMs);
+  w.onmessage=ev=>{
+    clearTimeout(tle);w.terminate();_worker=null;
+    setButtons(false);
+    if(ev.data.type==='compileErr'){
+      onErr("Runtime/compile error: "+ev.data.msg+"\n\nThis may mean:\n  • Wrong types (mixing int and long long)\n  • Variable used before assignment\n  • Division by zero\n  • Stack overflow (infinite recursion)");
+    } else onDone(ev.data.results);
+  };
+  w.onerror=ev=>{clearTimeout(tle);w.terminate();_worker=null;setButtons(false);onErr("Worker error: "+ev.message);};
+  w.postMessage(tests.map(t=>({x:t.x.toString(),n:t.n.toString()})));
+}
+
+// ══════════════════════════════════════════
+// RUN (sample — first 5 tests)
+// ══════════════════════════════════════════
+function runCode(){
+  const out=document.getElementById('b-out');
+  sbtab(document.querySelectorAll('.btab')[0],'b-out');
+
+  const {errs,warns}=staticValidate(getCode());
+  if(errs.length){
+    let h='<div class="ol oi">// Static Analysis — compile-time check</div>';
+    errs.forEach(e=>h+=`<div class="err-block">${esc(e)}</div>`);
+    warns.forEach(w=>h+=`<div class="warn-block">${esc(w)}</div>`);
+    h+=`<div class="ol oer" style="margin-top:5px">✗ ${errs.length} error(s) — fix before running</div>`;
+    out.innerHTML=h;return;
+  }
+
+  const cx=analyzeComplexity(getCode());
+  setChip(cx.cls,cx.label);
+
+  let h='';
+  warns.forEach(w=>h+=`<div class="warn-block">${esc(w)}</div>`);
+  h+=`<div class="ol oi">// Running sample tests (5 of 23)...</div>`;
+  out.innerHTML=h;
+
+  runJudge(TESTS.slice(0,5), results=>{
+    let pass=0;
+    results.forEach((r,i)=>{
+      const t=TESTS[i];
+      const got=r.ok?BigInt(r.val):null;
+      const ok=r.ok&&got===t.exp;
+      if(ok)pass++;
+      h+=`<div class="ol ${ok?'':'oer'}">`;
+      h+=`Test ${i+1}: power(${t.x}, ${t.n})`;
+      h+=` → <span style="color:${ok?'var(--green)':'var(--red)'}">`;
+      h+=r.ok?r.val:`ERROR: ${esc(r.err)}`;
+      h+=`</span> | Expected: ${t.exp} ${ok?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red)">✗</span>'}`;
+      h+=`</div>`;
+    });
+    h+=`<div class="ol" style="margin-top:6px;color:${pass===5?'var(--green)':'var(--ora)'}">`;
+    h+=`Sample: ${pass}/5 passed · Algorithm: ${cx.label}</div>`;
+    h+=`<div class="ol" style="color:var(--tx3)">Click Submit to run all 23 test cases and get your score.</div>`;
+    out.innerHTML=h;
+  }, err=>{
+    out.innerHTML+=`<div class="err-block">${esc(err)}</div><div class="ol oer">✗ Execution failed</div>`;
+  });
+}
+
+// ══════════════════════════════════════════
+// SUBMIT (all 23 tests + scoring)
+// ══════════════════════════════════════════
+function submitCode(){
+  const out=document.getElementById('b-out');
+  const tr=document.getElementById('b-tr');
+  sbtab(document.querySelectorAll('.btab')[0],'b-out');
+
+  const {errs,warns}=staticValidate(getCode());
+  if(errs.length){
+    let h='<div class="ol oi">// Judge — Static Check Failed</div>';
+    errs.forEach(e=>h+=`<div class="err-block">${esc(e)}</div>`);
+    warns.forEach(w=>h+=`<div class="warn-block">${esc(w)}</div>`);
+    h+=`<div class="ol oer">✗ Submission rejected — ${errs.length} error(s). Fix and resubmit.</div>`;
+    out.innerHTML=h;return;
+  }
+
+  const cx=analyzeComplexity(getCode());
+  setChip(cx.cls,cx.label);
+
+  out.innerHTML=`<div class="ol oi">// Judging — running all 23 test cases...</div>`;
+
+  runJudge(TESTS, results=>{
+    let pass=0, firstFail=-1;
+    results.forEach((r,i)=>{
+      const t=TESTS[i];
+      const got=r.ok?BigInt(r.val):null;
+      const ok=r.ok&&got===t.exp;
+      if(ok)pass++;else if(firstFail===-1)firstFail=i;
+    });
+
+    const allPass=pass===TESTS.length;
+    const algoScore=allPass?cx.score:0;
+    const maxScore=Math.max(0,15-hintPenalty);
+    const awarded=Math.min(algoScore,maxScore);
+
+    document.getElementById('score-badge').textContent=`${awarded} / 15 pts`;
+
+    // Output panel
+    let h='';
+    warns.forEach(w=>h+=`<div class="warn-block">${esc(w)}</div>`);
+    h+=`<div class="ol oi">// Judge Complete — ${pass}/${TESTS.length} test cases passed</div>`;
+    if(allPass){
+      h+=`<div class="ol" style="color:var(--green)">✓ All ${TESTS.length} test cases passed</div>`;
+      h+=`<div class="ol" style="color:var(--green)">✓ Algorithm: ${cx.label}</div>`;
+      if(hintPenalty>0) h+=`<div class="ol own">⚠ Hint penalty: −${hintPenalty} pts (${hintsRevealed} hint${hintsRevealed>1?'s':''} used)</div>`;
+      h+=`<div class="ol" style="color:var(--green);font-weight:700;margin-top:4px">✓ Score: ${awarded} / ${maxScore} pts</div>`;
+    } else {
+      h+=`<div class="ol oer">✗ ${TESTS.length-pass} test case(s) failed</div>`;
+      if(firstFail>=0){
+        const t=TESTS[firstFail];const r=results[firstFail];
+        const got=r.ok?r.val:'ERROR';
+        h+=`<div class="err-block">First failure — Test ${firstFail+1}: power(${t.x}, ${t.n})\n  Expected  : ${t.exp}\n  Got       : ${got}\n  Test name : ${t.label}</div>`;
+        if(r.ok&&r.val!==t.exp.toString()){
+          h+=`<div class="warn-block">Logic error detected:\n  Your result ${r.val} ≠ expected ${t.exp}\n  Check: base case (n=0 → return 1?), odd exponent handling, negative base</div>`;
+        }
+      }
+      h+=`<div class="ol oer" style="margin-top:4px">Score: 0 / ${maxScore} pts — Fix failing tests and resubmit</div>`;
+    }
+    out.innerHTML=h;
+
+    // Test Results table
+    let trh=`<div class="trg" style="background:var(--surf);position:sticky;top:0;z-index:1">
+      <div class="trh">#</div>
+      <div class="trh">Test</div>
+      <div class="trh">Expected</div>
+      <div class="trh">Got</div>
+      <div class="trh">Status</div>
+    </div>`;
+    results.forEach((r,i)=>{
+      const t=TESTS[i];
+      const got=r.ok?BigInt(r.val):null;
+      const ok=r.ok&&got===t.exp;
+      const gotStr=r.ok?r.val:'ERR';
+      trh+=`<div class="trg" style="${ok?'':'background:rgba(255,79,98,.035)'}">
+        <div class="trc" style="color:var(--tx3);font-size:10px">${i+1}</div>
+        <div class="trc" style="font-family:var(--fcode);font-size:10px;color:var(--tx2)">${esc(t.label)}</div>
+        <div class="trc" style="color:var(--tx2);font-family:var(--fcode)">${t.exp}</div>
+        <div class="trc" style="color:${ok?'var(--green)':r.ok?'var(--red)':'var(--ora)'};font-family:var(--fcode)">${esc(gotStr)}</div>
+        <div class="trc">${ok?'<span style="color:var(--green);font-weight:900">✓</span>':'<span style="color:var(--red);font-weight:900">✗</span>'}</div>
+      </div>`;
+    });
+    tr.innerHTML=trh;
+    sbtab(document.querySelectorAll('.btab')[1],'b-tr');
+
+    // Show result modal if passed
+    if(allPass){
+      setTimeout(()=>{
+        document.getElementById('res-icon').textContent=awarded===15?'🏆':awarded>=9?'⭐':'🎯';
+        document.getElementById('res-title').textContent=awarded===maxScore?'Perfect Solution!':'Tests Passed!';
+        document.getElementById('res-sub').textContent=cx.label;
+        document.getElementById('res-score').textContent=awarded;
+        document.getElementById('res-score').style.color=awarded>=12?'var(--green)':awarded>=9?'var(--purple)':'var(--ora)';
+        const alEl=document.getElementById('res-algo');
+        if(cx.score===15){alEl.style.cssText='background:var(--gdim);color:var(--green);border:1px solid rgba(48,212,116,.3)';alEl.textContent='⚡ O(log n) Iterative — Full Marks';}
+        else if(cx.score===9){alEl.style.cssText='background:var(--pdim);color:var(--purple);border:1px solid rgba(168,101,255,.3)';alEl.textContent='◈ O(log n) Recursive — 9 pts';}
+        else{alEl.style.cssText='background:var(--odim);color:var(--ora);border:1px solid rgba(240,160,48,.3)';alEl.textContent='⚠ O(n) Naive — 3 pts';}
+        showModal('m-result');
+      },300);
+    }
+  }, err=>{
+    out.innerHTML=`<div class="ol oi">// Judge — Error</div><div class="err-block">${esc(err)}</div><div class="ol oer">✗ Execution error — 0 pts</div>`;
+  });
+}
+
+// ══════════════════════════════════════════
+// HINTS
+// ══════════════════════════════════════════
+let pendingHintN=0;
+function revHint(n){
+  if(hintRevealed[n-1]){
+    const b=document.getElementById('hb'+n),t=document.getElementById('ht'+n);
+    b.classList.toggle('open');t.textContent=b.classList.contains('open')?'▼ Hide':'▶ Show';
+    return;
+  }
+  pendingHintN=n;
+  const after=Math.max(0,15-hintPenalty-3);
+  document.getElementById('hc-after').textContent=after+' pts';
+  document.getElementById('hc-after').style.color=after<6?'var(--red)':after<12?'var(--ora)':'var(--green)';
+  document.getElementById('hc-confirm-btn').onclick=()=>confirmHint(n);
+  showModal('m-hint-confirm');
+}
+function confirmHint(n){
+  closeM('m-hint-confirm');
+  hintPenalty+=3;hintsRevealed++;hintRevealed[n-1]=true;
+  const c=document.getElementById('hcost'+n);
+  if(c){c.textContent='−3 pts ✓';c.style.cssText='background:rgba(48,212,116,.07);color:var(--tx3);border:1px solid rgba(48,212,116,.15);font-size:10px;padding:2px 6px;border-radius:10px;margin-right:4px';}
+  document.getElementById('hb'+n).classList.add('open');
+  document.getElementById('ht'+n).textContent='▼ Hide';
+  document.getElementById('hc'+n).classList.add('on');
+  if(n===hintsUnlocked&&n<3){
+    hintsUnlocked=n+1;
+    document.getElementById('hc'+(n+1)).classList.remove('lock');
+    document.getElementById('ht'+(n+1)).textContent='▶ Reveal';
+  }
+  const mx=Math.max(0,15-hintPenalty);
+  document.getElementById('hints-used').textContent=hintsRevealed+' / 3';
+  const mp=document.getElementById('max-pts');
+  mp.textContent=mx;mp.style.color=hintPenalty===0?'var(--green)':hintPenalty<7?'var(--ora)':'var(--red)';
+  document.getElementById('score-badge').textContent='0 / '+mx+' pts';
+}
+
+// Resizer
+(()=>{
+  const rsz=document.getElementById('rsz'),lp=document.getElementById('left');
+  let drag=false;
+  rsz.addEventListener('mousedown',e=>{drag=true;document.body.style.cssText='cursor:col-resize;user-select:none';e.preventDefault();});
+  document.addEventListener('mousemove',e=>{if(!drag)return;const rect=document.getElementById('app').getBoundingClientRect();const w=e.clientX-rect.left;if(w>230&&w<rect.width-270){lp.style.width=w+'px';editor&&editor.refresh();}});
+  document.addEventListener('mouseup',()=>{if(drag){drag=false;document.body.style.cssText='';}});
+})();
+window.addEventListener('resize',()=>editor&&editor.refresh());
+</script>
+</body>
+</html>

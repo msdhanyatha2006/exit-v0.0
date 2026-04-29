@@ -1,0 +1,143 @@
+/*  EXIT-VO.O  —  gs-hud.css
+    Copy into EVERY room folder alongside gameState.js
+    ================================================== */
+
+/* ── Persistent HUD bar ──────────────────────────────────── */
+#gs-hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 99999;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+  background: linear-gradient(90deg, rgba(0,0,0,.97) 0%, rgba(6,3,18,.97) 100%);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  font-family: 'Share Tech Mono','JetBrains Mono','Courier New', monospace;
+  font-size: 11.5px;
+  letter-spacing: 1.2px;
+  user-select: none;
+  box-shadow: 0 2px 24px rgba(0,0,0,.85);
+}
+#gs-hud * { white-space: nowrap; }
+
+#gs-room-lbl  { color:#4d88cc; font-size:10px; letter-spacing:2px; opacity:.8; }
+#gs-score-wrap{ flex:1; text-align:center; color:#b0ccee; font-size:11.5px; }
+#gs-score-val { color:#30d474; font-size:16px; font-weight:700;
+                text-shadow:0 0 12px rgba(48,212,116,.55); }
+#gs-time-wrap { color:#ffbb44; font-size:11px;
+                text-shadow:0 0 8px rgba(255,187,68,.3); }
+#gs-time-val  { letter-spacing:1.5px; }
+
+/* ── STOP button ─────────────────────────────────────────── */
+#gs-stop-btn {
+  background: rgba(160,15,15,.3);
+  border: 1px solid rgba(255,50,50,.4);
+  color: #ff5555;
+  padding: 4px 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  flex-shrink: 0;
+  transition: all .2s;
+}
+#gs-stop-btn:hover {
+  background: rgba(255,40,40,.4);
+  border-color: #ff3333;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255,40,40,.5);
+}
+
+/* ── Push page content below HUD ─────────────────────────── */
+body { padding-top: 42px !important; }
+
+/* ── NEXT ROOM button ────────────────────────────────────── */
+.gs-next-btn {
+  display: inline-block;
+  padding: 13px 40px;
+  background: linear-gradient(135deg, #0f7a3e 0%, #1bbf60 100%);
+  color: #fff; border: none; border-radius: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .88rem; font-weight: 700; letter-spacing: 2.5px;
+  cursor: pointer;
+  box-shadow: 0 0 22px rgba(27,191,96,.4);
+  transition: all .22s;
+  animation: gsPulseGreen 2s ease-in-out infinite;
+}
+.gs-next-btn:hover { transform:translateY(-2px) scale(1.04); box-shadow:0 0 38px rgba(27,191,96,.7); }
+@keyframes gsPulseGreen{0%,100%{box-shadow:0 0 22px rgba(27,191,96,.4)}50%{box-shadow:0 0 42px rgba(27,191,96,.75)}}
+
+/* ── RESULT button (last room) ───────────────────────────── */
+.gs-result-btn {
+  display: inline-block;
+  padding: 13px 40px;
+  background: linear-gradient(135deg, #7a0f60 0%, #d41b9a 100%);
+  color: #fff; border: none; border-radius: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .88rem; font-weight: 700; letter-spacing: 2.5px;
+  cursor: pointer;
+  box-shadow: 0 0 22px rgba(212,27,154,.4);
+  transition: all .22s;
+  animation: gsPulsePink 2s ease-in-out infinite;
+}
+.gs-result-btn:hover { transform:translateY(-2px) scale(1.04); box-shadow:0 0 38px rgba(212,27,154,.7); }
+@keyframes gsPulsePink{0%,100%{box-shadow:0 0 22px rgba(212,27,154,.4)}50%{box-shadow:0 0 42px rgba(212,27,154,.75)}}
+
+/* ── Celebration overlay ─────────────────────────────────── */
+#gs-celebrate {
+  position: fixed; inset: 0; z-index: 999999;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+}
+#gs-confetti-cv {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+}
+#gs-cel-box {
+  position: relative; z-index: 1; text-align: center;
+  background: linear-gradient(145deg,rgba(8,20,10,.97),rgba(4,14,28,.97));
+  border: 1px solid rgba(48,212,116,.35);
+  border-radius: 24px; padding: 50px 60px;
+  box-shadow: 0 0 60px rgba(48,212,116,.15), 0 0 120px rgba(48,212,116,.06);
+  animation: celIn .5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes celIn {
+  from { transform: scale(.7) translateY(40px); opacity: 0; }
+  to   { transform: scale(1)  translateY(0);    opacity: 1; }
+}
+#gs-cel-icon {
+  font-size: 4rem; margin-bottom: 14px;
+  animation: celBounce .7s ease .2s both;
+}
+@keyframes celBounce {
+  from { transform: scale(0) rotate(-30deg); }
+  to   { transform: scale(1) rotate(0); }
+}
+#gs-cel-msg {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 1.5rem; font-weight: 700; letter-spacing: 4px;
+  color: #30d474; text-shadow: 0 0 20px rgba(48,212,116,.7);
+  margin-bottom: 10px;
+}
+#gs-cel-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .75rem; letter-spacing: 2.5px;
+  color: rgba(180,220,200,.6); margin-bottom: 32px;
+}
+#gs-cel-btn {
+  background: linear-gradient(135deg,#0f7a3e,#1bbf60);
+  border: none; border-radius: 10px; color: #fff;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .9rem; font-weight: 700; letter-spacing: 3px;
+  padding: 14px 50px; cursor: pointer;
+  box-shadow: 0 0 24px rgba(27,191,96,.4);
+  transition: all .22s;
+}
+#gs-cel-btn:hover { transform: scale(1.05); box-shadow: 0 0 40px rgba(27,191,96,.7); }

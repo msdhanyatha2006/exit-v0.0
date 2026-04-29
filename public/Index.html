@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EXIT-VO.O — Game Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --void:#01020a; --dark:#060810; --card:rgba(4,10,28,.97);
+      --cyan:#00d4ff; --gold:#e8c56a; --green:#00ff88; --red:#ff4466;
+      --tx1:#dce8f8; --tx2:rgba(79,120,170,.7); --border:rgba(0,212,255,.12);
+    }
+    html, body { width:100%; height:100%; background:var(--void); color:var(--tx1);
+      font-family:'Rajdhani',sans-serif; overflow:hidden; }
+
+    #bg-canvas { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    .scanlines  { position:fixed; inset:0; z-index:1; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px); }
+
+    /* ── Shared screen base ── */
+    .screen { position:fixed; inset:0; z-index:10; display:flex;
+      align-items:center; justify-content:center; flex-direction:column;
+      transition:opacity .4s ease; }
+    .screen.hidden { opacity:0; pointer-events:none; }
+
+    /* ══════ REGISTRATION ══════ */
+    #reg-screen {
+      background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(6,12,35,.99),rgba(1,2,10,.999));
+    }
+    .brand { font-family:'Share Tech Mono',monospace; font-size:.6rem;
+      letter-spacing:4px; color:var(--tx2); margin-bottom:10px; }
+    .game-logo { font-family:'Share Tech Mono',monospace;
+      font-size:clamp(2.2rem,6vw,3.8rem); color:var(--cyan); letter-spacing:10px;
+      margin-bottom:4px;
+      text-shadow:0 0 40px rgba(0,212,255,.55),0 0 80px rgba(0,212,255,.22);
+      animation:logoPulse 3s ease-in-out infinite; }
+    @keyframes logoPulse {
+      0%,100%{text-shadow:0 0 40px rgba(0,212,255,.55),0 0 80px rgba(0,212,255,.22)}
+      50%{text-shadow:0 0 60px rgba(0,212,255,.8),0 0 100px rgba(0,212,255,.35)} }
+    .game-tagline { font-family:'Share Tech Mono',monospace; font-size:.6rem;
+      letter-spacing:5px; color:var(--tx2); margin-bottom:44px; }
+
+    .reg-card { background:var(--card); border:1px solid var(--border);
+      border-radius:6px; padding:34px 38px; width:min(430px,93vw);
+      box-shadow:0 0 60px rgba(0,0,0,.8),0 0 30px rgba(0,212,255,.05); }
+    .reg-card h2 { font-family:'Share Tech Mono',monospace; font-size:.65rem;
+      letter-spacing:3px; color:var(--tx2); margin-bottom:22px; padding-bottom:12px;
+      border-bottom:1px solid var(--border); }
+
+    /* Resume banner */
+    #resume-banner { display:none; background:rgba(0,255,136,.05);
+      border:1px solid rgba(0,255,136,.18); border-radius:4px; padding:12px 14px;
+      margin-bottom:18px; flex-direction:column; gap:8px; }
+    .rb-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .rb-name { font-family:'Share Tech Mono',monospace; font-size:.73rem; color:var(--tx1); }
+    .rb-status { font-family:'Share Tech Mono',monospace; font-size:.58rem;
+      letter-spacing:1.5px; color:var(--green); margin-top:3px; }
+    .rb-actions { display:flex; gap:6px; flex-shrink:0; }
+    .rb-score-bar { height:3px; background:rgba(0,255,136,.1); border-radius:2px; }
+    .rb-score-fill { height:100%; background:var(--green); border-radius:2px; transition:width .6s ease; }
+
+    .field { margin-bottom:16px; }
+    .field label { display:block; font-family:'Share Tech Mono',monospace;
+      font-size:.58rem; letter-spacing:2.5px; color:var(--tx2); margin-bottom:7px; }
+    .field input { width:100%; padding:12px 15px; background:rgba(0,0,0,.5);
+      border:1px solid rgba(0,212,255,.2); border-radius:4px; color:var(--tx1);
+      font-family:'Share Tech Mono',monospace; font-size:.88rem; letter-spacing:1px;
+      outline:none; transition:border-color .2s,box-shadow .2s; }
+    .field input:focus { border-color:var(--cyan); box-shadow:0 0 0 2px rgba(0,212,255,.1); }
+    .field input::placeholder { color:rgba(79,120,170,.3); }
+
+    .btn { padding:13px; width:100%; background:rgba(0,212,255,.08);
+      border:1px solid var(--cyan); border-radius:4px; color:var(--cyan);
+      font-family:'Share Tech Mono',monospace; font-size:.72rem; font-weight:700;
+      letter-spacing:3px; cursor:pointer; transition:all .2s; }
+    .btn:hover { background:var(--cyan); color:#000; box-shadow:0 0 28px rgba(0,212,255,.35); }
+    .btn:active { transform:scale(.98); }
+    .btn-sm { width:auto; padding:6px 12px; font-size:.58rem; letter-spacing:1.5px; }
+    .btn-green { border-color:var(--green); color:var(--green); background:rgba(0,255,136,.07); }
+    .btn-green:hover { background:var(--green); color:#000; box-shadow:0 0 18px rgba(0,255,136,.3); }
+    .btn-danger-dim { border-color:rgba(255,68,102,.35); color:rgba(255,68,102,.65);
+      background:rgba(255,68,102,.05); }
+    .btn-danger-dim:hover { background:var(--red); color:#fff; border-color:var(--red); }
+    .reg-err { font-family:'Share Tech Mono',monospace; font-size:.6rem; letter-spacing:2px;
+      color:var(--red); margin-top:10px; display:none; text-align:center; }
+
+    /* ══════ FULLSCREEN PROMPT ══════ */
+    #fs-prompt-screen { background:rgba(1,2,10,.96); gap:22px; text-align:center; }
+    .fsp-icon { font-size:3rem; }
+    .fsp-title { font-family:'Share Tech Mono',monospace; font-size:.9rem;
+      letter-spacing:5px; color:var(--cyan); text-shadow:0 0 20px rgba(0,212,255,.4); }
+    .fsp-sub { font-family:'Share Tech Mono',monospace; font-size:.6rem;
+      letter-spacing:2px; color:var(--tx2); max-width:380px; line-height:2.1; }
+    .fsp-sub em { color:rgba(255,68,102,.72); font-style:normal; }
+    .btn-skip { background:none; border:none; color:var(--tx2);
+      font-family:'Share Tech Mono',monospace; font-size:.58rem; letter-spacing:2px;
+      cursor:pointer; text-decoration:underline; text-underline-offset:3px; margin-top:-8px; }
+    .btn-skip:hover { color:var(--tx1); }
+
+    /* ══════ GAME WRAPPER ══════ */
+    #game-wrap { position:fixed; inset:0; z-index:5; background:#000; display:none; }
+    #game-frame { width:100%; height:100%; border:none; display:block; }
+
+    /* ══════ FULLSCREEN EXIT OVERLAY ══════ */
+    #fs-exit-overlay { position:fixed; inset:0; z-index:1000;
+      background:rgba(0,0,0,.88); backdrop-filter:blur(8px) saturate(.7);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:20px; text-align:center; transition:opacity .3s ease; }
+    #fs-exit-overlay.hidden { opacity:0; pointer-events:none; }
+    .fso-icon  { font-size:3.5rem; }
+    .fso-title { font-family:'Share Tech Mono',monospace; font-size:.9rem;
+      letter-spacing:5px; color:var(--gold); text-shadow:0 0 20px rgba(232,197,106,.5); }
+    .fso-body  { font-family:'Share Tech Mono',monospace; font-size:.6rem;
+      letter-spacing:2px; color:var(--tx2); max-width:400px; line-height:2.1; }
+    .fso-body .warn { color:rgba(255,68,102,.75); }
+
+    /* ══════ PROCTOR WARNING ══════ */
+    #proctor-warn { position:fixed; top:0; left:0; right:0; z-index:2000;
+      background:linear-gradient(90deg,rgba(232,197,106,.96),rgba(255,200,80,.96));
+      color:#000; padding:11px 24px; display:flex; align-items:center; gap:14px;
+      font-family:'Share Tech Mono',monospace; font-size:.7rem; letter-spacing:2px;
+      transform:translateY(-110%); transition:transform .35s cubic-bezier(.16,1,.3,1);
+      box-shadow:0 4px 20px rgba(232,197,106,.3); }
+    #proctor-warn.show { transform:translateY(0); }
+    #pw-close { margin-left:auto; cursor:pointer; font-size:.9rem; opacity:.7; }
+    #pw-close:hover { opacity:1; }
+
+    /* ══════ VIOLATION TOAST ══════ */
+    #viol-toast { position:fixed; bottom:24px; right:24px; z-index:3000;
+      background:rgba(255,68,102,.12); border:1px solid rgba(255,68,102,.3);
+      border-radius:4px; padding:10px 16px;
+      font-family:'Share Tech Mono',monospace; font-size:.6rem; letter-spacing:2px; color:var(--red);
+      transform:translateX(130%); transition:transform .3s; max-width:290px; }
+    #viol-toast.show { transform:translateX(0); }
+
+    /* ══════ TERMINATED ══════ */
+    #terminated-screen { background:rgba(1,2,10,.98); gap:20px; text-align:center; }
+    .term-icon  { font-size:4rem; }
+    .term-title { font-family:'Share Tech Mono',monospace; font-size:.9rem;
+      letter-spacing:5px; color:var(--red); text-shadow:0 0 22px rgba(255,68,102,.5); }
+    .term-reason { font-family:'Share Tech Mono',monospace; font-size:.65rem;
+      letter-spacing:2px; color:var(--tx2); max-width:380px; line-height:2; }
+
+    /* ══════ SUBMITTED BADGE ══════ */
+    #submitted-badge { position:fixed; bottom:20px; left:50%;
+      transform:translateX(-50%) translateY(80px); z-index:3000;
+      background:rgba(0,255,136,.1); border:1px solid rgba(0,255,136,.28);
+      border-radius:4px; padding:9px 20px;
+      font-family:'Share Tech Mono',monospace; font-size:.6rem;
+      letter-spacing:2px; color:var(--green); transition:transform .4s cubic-bezier(.16,1,.3,1); }
+    #submitted-badge.show { transform:translateX(-50%) translateY(0); }
+
+    /* ══════ NOT-FULLSCREEN INDICATOR ══════ */
+    #fs-warn-strip { position:fixed; bottom:0; left:0; right:0; z-index:800;
+      background:rgba(255,68,102,.06); border-top:1px solid rgba(255,68,102,.18);
+      padding:5px 16px; font-family:'Share Tech Mono',monospace; font-size:.55rem;
+      letter-spacing:2px; color:rgba(255,68,102,.6); display:none;
+      justify-content:center; gap:16px; align-items:center; }
+    #fs-warn-strip.visible { display:flex; }
+    #fs-warn-strip button { background:none; border:none; color:rgba(255,68,102,.6);
+      font-family:'Share Tech Mono',monospace; font-size:.55rem; letter-spacing:2px;
+      cursor:pointer; text-decoration:underline; }
+    #fs-warn-strip button:hover { color:var(--red); }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="scanlines"></div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 1 — PLAYER REGISTRATION
+══════════════════════════════════════════════ -->
+<div class="screen" id="reg-screen">
+  <div style="display:flex;flex-direction:column;align-items:center;width:100%">
+    <div class="brand">◈ SENTINEL SHIELD × EXIT-VO.O</div>
+    <div class="game-logo">EXIT-VO.O</div>
+    <div class="game-tagline">ESCAPE · CODE · CONQUER</div>
+
+    <div class="reg-card">
+      <h2>▶ PLAYER REGISTRATION</h2>
+
+      <!-- Resume Banner -->
+      <div id="resume-banner">
+        <div class="rb-top">
+          <div>
+            <div class="rb-name" id="rb-name">—</div>
+            <div class="rb-status" id="rb-status">Room 0/6 · 0 pts</div>
+          </div>
+          <div class="rb-actions">
+            <button class="btn btn-sm btn-green" id="resume-btn">▶ RESUME</button>
+            <button class="btn btn-sm btn-danger-dim" id="reset-btn">↺ RESET</button>
+          </div>
+        </div>
+        <div class="rb-score-bar"><div class="rb-score-fill" id="rb-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="field">
+        <label>PLAYER NAME</label>
+        <input type="text" id="inp-name" placeholder="Enter your full name" maxlength="80"
+               autocomplete="off" autocapitalize="words">
+      </div>
+      <div class="field">
+        <label>USN / ROLL NUMBER</label>
+        <input type="text" id="inp-usn" placeholder="e.g. 1VE22CS001" maxlength="20"
+               autocomplete="off" autocapitalize="characters">
+      </div>
+      <div class="field">
+        <label>DIVISION / SECTION</label>
+        <input type="text" id="inp-div" placeholder="e.g. A, B, CS-A" maxlength="20"
+               autocomplete="off" autocapitalize="characters">
+      </div>
+      <button class="btn" id="start-btn" style="margin-top:8px;">▶ ENTER THE GAME</button>
+      <div class="reg-err" id="reg-err">⚠ Name and USN are required to proceed</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 2 — FULLSCREEN PROMPT
+══════════════════════════════════════════════ -->
+<div class="screen hidden" id="fs-prompt-screen">
+  <div class="fsp-icon">🖥️</div>
+  <div class="fsp-title">FULLSCREEN MODE</div>
+  <div class="fsp-sub">
+    For the best experience and exam integrity,<br>
+    the game runs in fullscreen mode.<br>
+    <em>Exiting fullscreen mid-game will be flagged.</em>
+  </div>
+  <button class="btn" id="go-fs-btn" style="width:auto;padding:14px 44px;">
+    ⛶ ENTER FULLSCREEN &amp; START
+  </button>
+  <button class="btn-skip" id="skip-fs-btn">Continue without fullscreen →</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     GAME WRAPPER — iframe fills this
+══════════════════════════════════════════════ -->
+<div id="game-wrap">
+  <iframe id="game-frame" src="about:blank"
+    allowfullscreen allow="fullscreen"
+    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation">
+  </iframe>
+</div>
+
+<!-- Fullscreen Exit Overlay (on top of game, semi-transparent) -->
+<div id="fs-exit-overlay" class="hidden">
+  <div class="fso-icon">⚠️</div>
+  <div class="fso-title">FULLSCREEN EXITED</div>
+  <div class="fso-body">
+    Your game is still running and progress is saved.<br>
+    Re-enter fullscreen to continue the challenge.<br>
+    <span class="warn">This exit has been flagged to the proctor.</span>
+  </div>
+  <button class="btn" id="reenter-fs-btn" style="width:auto;padding:13px 44px;">
+    ⛶ RE-ENTER FULLSCREEN
+  </button>
+  <button class="btn-skip" id="continue-no-fs-btn">Continue without fullscreen →</button>
+</div>
+
+<!-- Not-fullscreen bottom strip (subtle, when not in fullscreen during game) -->
+<div id="fs-warn-strip">
+  <span>[ NOT IN FULLSCREEN — GAME VISIBLE TO OTHERS ]</span>
+  <button id="fs-strip-btn">Re-enter ⛶</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PROCTOR WARNING BANNER
+══════════════════════════════════════════════ -->
+<div id="proctor-warn">
+  <span>⚠ PROCTOR:</span>
+  <span id="pw-msg">The proctor is watching.</span>
+  <span id="pw-close">✕</span>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     VIOLATION TOAST
+══════════════════════════════════════════════ -->
+<div id="viol-toast">⚠ Violation detected</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 3 — SESSION TERMINATED
+══════════════════════════════════════════════ -->
+<div class="screen hidden" id="terminated-screen">
+  <div class="term-icon">🚫</div>
+  <div class="term-title">SESSION TERMINATED</div>
+  <div class="term-reason" id="term-reason">Your session has been ended by the proctor.</div>
+</div>
+
+<!-- Score submitted badge -->
+<div id="submitted-badge">✓ SCORE SUBMITTED TO LEADERBOARD</div>
+
+<!-- ══════════════════════════════════════════════
+     SOCKET.IO + GAME LOGIC
+══════════════════════════════════════════════ -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════════
+   EXIT-VO.O  ·  Student Game Shell  v2
+   Responsibilities:
+     1. Registration form + localStorage resume
+     2. Fullscreen management (request / detect exit / re-entry)
+     3. Iframe-based game loading with room-progress tracking
+     4. Socket.io: register, heartbeat, violations, result submission
+     5. No page redirects — the shell is the only top-level page
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── ROOM RESUME MAP ──────────────────────────────────────────────
+   gx_progress = how many rooms completed (0–6)
+   Index gives the URL of the NEXT room to play                    */
+const RESUME_MAP = [
+  '/main1screen/',   // 0 → fresh start, begin at intro
+  '/cs-001/',        // 1 → mroom1 done
+  '/Mroom2/',        // 2 → cs001 done
+  '/cs-002/',        // 3 → mroom2 done
+  '/lastroom/',      // 4 → cs002 done  (Mystery Room 3)
+  '/cs-003/',        // 5 → mroom3 done
+  '/result/',        // 6 → all rooms done
+];
+
+const ROOM_LABELS = ['INTRO','CS-001','MYSTERY RM 2','CS-002','MYSTERY RM 3','CS-003','RESULT'];
+
+/* ── GS localStorage keys (must match gameState.js) ── */
+const K = {
+  name:'gx_name', usn:'gx_usn', score:'gx_score',
+  log:'gx_log', progress:'gx_progress', start:'gx_start', end:'gx_end',
+  division:'gx_division', sessionId:'gx_session',
+};
+const lsGet  = k => localStorage.getItem(k);
+const lsSet  = (k,v) => localStorage.setItem(k, String(v));
+const lsDel  = k => localStorage.removeItem(k);
+
+/* ── DOM ── */
+const $ = id => document.getElementById(id);
+const regScreen        = $('reg-screen');
+const fsPromptScreen   = $('fs-prompt-screen');
+const gameWrap         = $('game-wrap');
+const gameFrame        = $('game-frame');
+const fsExitOverlay    = $('fs-exit-overlay');
+const fsWarnStrip      = $('fs-warn-strip');
+const terminatedScreen = $('terminated-screen');
+const proctorWarn      = $('proctor-warn');
+const violToast        = $('viol-toast');
+const submittedBadge   = $('submitted-badge');
+
+/* ── RUNTIME STATE ── */
+let socket          = null;
+let playerName      = '';
+let playerUSN       = '';
+let gameActive      = false;
+let resultSubmitted = false;
+let currentRoom     = 'LOBBY';
+let violTimer       = null;
+
+/* ════════════════════════════════════════════
+   BACKGROUND PARTICLES
+════════════════════════════════════════════ */
+(function () {
+  const cv = $('bg-canvas');
+  const cx = cv.getContext('2d');
+  let W, H;
+  function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+
+  const pts = Array.from({length:55}, () => ({
+    x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+    vx:(Math.random()-.5)*.22, vy:-(Math.random()*.3+.07),
+    r:Math.random()*1.4+.3, a:Math.random()*.38+.07,
+    col:Math.random()>.5?'#00d4ff':'#e8c56a',
+    ph:Math.random()*Math.PI*2,
+  }));
+
+  (function draw() {
+    cx.clearRect(0,0,W,H);
+    const t = Date.now()*.001;
+    pts.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < -10) { p.y = H+5; p.x = Math.random()*W; }
+      if (p.x < -10) p.x = W+5; if (p.x > W+10) p.x = -5;
+      const pulse = .5+.5*Math.sin(t*1.3+p.ph);
+      cx.beginPath(); cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      cx.fillStyle = p.col; cx.globalAlpha = p.a*pulse; cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+})();
+
+/* ════════════════════════════════════════════
+   RESUME DETECTION  (runs on page load)
+════════════════════════════════════════════ */
+(function detectResume() {
+  const name  = lsGet(K.name);
+  const usn   = lsGet(K.usn);
+  const score = parseInt(lsGet(K.score)||'0',10);
+  const prog  = parseInt(lsGet(K.progress)||'0',10);
+  if (!name || !usn) return;
+
+  $('resume-banner').style.display = 'flex';
+  const _div = lsGet(K.division) || '';
+  $('rb-name').textContent   = name + '  ·  ' + usn + (_div && _div !== '—' ? '  ·  ' + _div : '');
+  $('rb-status').textContent = 'Room ' + prog + '/6  ·  ' + score + ' pts';
+  const pct = Math.min(100, Math.round(score/365*100));
+  $('rb-bar').style.width = pct + '%';
+  // Pre-fill fields
+  $('inp-name').value = name;
+  $('inp-usn').value  = usn;
+  if ($('inp-div')) $('inp-div').value = lsGet(K.division) || '';
+})();
+
+/* ── Resume existing session ── */
+$('resume-btn').addEventListener('click', () => {
+  playerName = lsGet(K.name)||'';
+  playerUSN  = lsGet(K.usn)||'';
+  if (!playerName || !playerUSN) return;
+  toFsPrompt();
+});
+
+/* ── Reset + new game ── */
+$('reset-btn').addEventListener('click', () => {
+  if (!confirm('Reset all progress and start a fresh game?')) return;
+  clearLS();
+  $('resume-banner').style.display = 'none';
+  $('inp-name').value = ''; $('inp-usn').value = '';
+  $('inp-name').focus();
+});
+
+function clearLS() {
+  Object.values(K).forEach(k => lsDel(k));
+}
+
+/* ════════════════════════════════════════════
+   REGISTRATION FORM
+════════════════════════════════════════════ */
+$('start-btn').addEventListener('click', submitReg);
+$('inp-name').addEventListener('keydown', e => { if(e.key==='Enter') $('inp-usn').focus(); });
+$('inp-usn').addEventListener('keydown',  e => { if(e.key==='Enter') $('inp-div').focus(); });
+$('inp-div').addEventListener('keydown',  e => { if(e.key==='Enter') submitReg(); });
+
+function submitReg() {
+  const name = $('inp-name').value.trim();
+  const usn  = $('inp-usn').value.trim().toUpperCase();
+  const div  = ($('inp-div') ? $('inp-div').value.trim().toUpperCase() : '') || '—';
+  const err  = $('reg-err');
+  if (!name || !usn) {
+    err.style.display = 'block';
+    (!name ? $('inp-name') : $('inp-usn')).focus();
+    return;
+  }
+  err.style.display = 'none';
+  playerName = name; playerUSN = usn;
+
+  // Init localStorage — preserve if same USN, reset if different USN (no collision)
+  if (lsGet(K.usn) !== usn) {
+    clearLS();
+    lsSet(K.score,'100'); lsSet(K.log,'{}'); lsSet(K.progress,'0');
+    lsSet(K.sessionId, usn + '_' + Date.now());
+  }
+  lsSet(K.name, name); lsSet(K.usn, usn); lsSet(K.division, div);
+
+  connectSocket();
+  toFsPrompt();
+}
+
+/* ════════════════════════════════════════════
+   SCREEN TRANSITIONS
+════════════════════════════════════════════ */
+function toFsPrompt() {
+  if (!socket) connectSocket();
+  regScreen.classList.add('hidden');
+  setTimeout(() => {
+    regScreen.style.display = 'none';
+    fsPromptScreen.style.display = 'flex';
+    requestAnimationFrame(() => fsPromptScreen.classList.remove('hidden'));
+  }, 420);
+}
+
+function toGame() {
+  fsPromptScreen.classList.add('hidden');
+  setTimeout(() => {
+    fsPromptScreen.style.display = 'none';
+    gameWrap.style.display = 'block';
+    gameActive = true;
+    loadCurrentRoom();
+    startHeartbeat();
+    startViolListeners();
+  }, 380);
+}
+
+/* ════════════════════════════════════════════
+   FULLSCREEN PROMPT BUTTONS
+════════════════════════════════════════════ */
+$('go-fs-btn').addEventListener('click', () => {
+  reqFS().then(()=>{}).catch(()=>{});
+  toGame();
+});
+$('skip-fs-btn').addEventListener('click', () => {
+  toGame();
+  fsWarnStrip.classList.add('visible');
+});
+
+/* ════════════════════════════════════════════
+   GAME ROOM LOADING
+════════════════════════════════════════════ */
+function loadCurrentRoom() {
+  const prog = parseInt(lsGet(K.progress)||'0',10);
+  const url  = RESUME_MAP[Math.min(prog, RESUME_MAP.length-1)];
+  currentRoom = ROOM_LABELS[Math.min(prog, ROOM_LABELS.length-1)] || 'ROOM';
+  gameFrame.src = url;
+}
+
+/* ── Monitor iframe navigation via load event ── */
+gameFrame.addEventListener('load', () => {
+  if (!gameActive) return;
+  try {
+    const path = gameFrame.contentWindow.location.pathname;
+
+    // Update room label from localStorage (rooms update gx_progress after completion)
+    const prog = parseInt(lsGet(K.progress)||'0',10);
+    currentRoom = ROOM_LABELS[Math.min(prog, ROOM_LABELS.length-1)] || 'ROOM';
+
+    // Detect arrival at result page
+    if (path.includes('result')) {
+      // Give result.html time to run GS.stopTimer() / GS.saveToLeaderboard()
+      setTimeout(submitResult, 700);
+    }
+
+    // Detect play-again (navigated back to main1screen AFTER result was submitted)
+    if (resultSubmitted && path.includes('main1screen')) {
+      handlePlayAgain();
+    }
+  } catch(e) { /* cross-origin safety */ }
+});
+
+/* ════════════════════════════════════════════
+   RESULT SUBMISSION
+════════════════════════════════════════════ */
+function submitResult() {
+  if (resultSubmitted) return;
+  resultSubmitted = true;
+
+  const name    = lsGet(K.name)     || playerName;
+  const usn     = lsGet(K.usn)      || playerUSN;
+  const score   = parseInt(lsGet(K.score)||'0', 10);
+  const start   = parseInt(lsGet(K.start)||'0', 10);
+  const end     = parseInt(lsGet(K.end)||String(Date.now()), 10);
+  const timeSec = start ? Math.max(0, Math.floor((end-start)/1000)) : 0;
+  let log = {};
+  try { log = JSON.parse(lsGet(K.log)||'{}'); } catch(e) {}
+
+  if (socket && socket.connected) {
+    const division = lsGet(K.division) || '—';
+    socket.emit('game_result', { name, usn, division, score, timeSec, log });
+    console.log('[EXIT-VO] Result emitted:', { name, usn, division, score, timeSec });
+  } else {
+    // Queue and retry on reconnect
+    socket && socket.once('connect', () => {
+      socket.emit('game_result', { name, usn, score, timeSec, log });
+    });
+  }
+
+  submittedBadge.classList.add('show');
+  setTimeout(() => submittedBadge.classList.remove('show'), 6000);
+}
+
+/* ── Play Again ── */
+function handlePlayAgain() {
+  resultSubmitted = false;
+  clearLS();
+  lsSet(K.name, playerName); lsSet(K.usn, playerUSN);
+  lsSet(K.score,'100'); lsSet(K.log,'{}'); lsSet(K.progress,'0');
+}
+
+/* ════════════════════════════════════════════
+   FULLSCREEN MANAGEMENT
+════════════════════════════════════════════ */
+function reqFS() {
+  const el = document.documentElement;
+  return (el.requestFullscreen || el.webkitRequestFullscreen ||
+          el.mozRequestFullScreen || el.msRequestFullscreen ||
+          (() => Promise.resolve())).call(el);
+}
+function exitFS() {
+  return (document.exitFullscreen || document.webkitExitFullscreen ||
+          document.mozCancelFullScreen || document.msExitFullscreen ||
+          (() => {})).call(document);
+}
+function isFS() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+            document.mozFullScreenElement || document.msFullscreenElement);
+}
+
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(ev =>
+  document.addEventListener(ev, onFSChange)
+);
+
+function onFSChange() {
+  if (!gameActive) return;
+  if (!isFS()) {
+    // Exited fullscreen during game — show overlay & strip
+    fsExitOverlay.classList.remove('hidden');
+    fsWarnStrip.classList.add('visible');
+    emitViol('tabs', 'Fullscreen exited mid-game');
+    showViolToast('⚠ Fullscreen exit flagged to proctor');
+  } else {
+    // Re-entered fullscreen
+    fsExitOverlay.classList.add('hidden');
+    fsWarnStrip.classList.remove('visible');
+  }
+}
+
+$('reenter-fs-btn').addEventListener('click', () => {
+  reqFS().then(()=>{}).catch(()=>{});
+});
+$('continue-no-fs-btn').addEventListener('click', () => {
+  fsExitOverlay.classList.add('hidden');
+});
+$('fs-strip-btn').addEventListener('click', () => {
+  reqFS().then(()=>{}).catch(()=>{});
+});
+
+/* ════════════════════════════════════════════
+   VIOLATION LISTENERS
+════════════════════════════════════════════ */
+function startViolListeners() {
+  // Tab visibility
+  document.addEventListener('visibilitychange', () => {
+    if (!gameActive || !document.hidden) return;
+    emitViol('tabs', 'Tab switched / window hidden');
+    showViolToast('⚠ Tab switch detected and logged');
+  });
+  // Mouse leaves browser window
+  document.addEventListener('mouseleave', () => {
+    if (!gameActive) return;
+    emitViol('mouse', 'Mouse exited window boundary');
+    showViolToast('⚠ Mouse boundary violation logged');
+  });
+}
+
+function emitViol(type, reason) {
+  if (!socket || !socket.connected) return;
+  const evts = { tabs:'violation_tabs', mouse:'violation_mouse', keys:'violation_keys' };
+  if (evts[type]) socket.emit(evts[type], { reason });
+}
+
+function showViolToast(msg) {
+  violToast.textContent = msg;
+  violToast.classList.add('show');
+  clearTimeout(violTimer);
+  violTimer = setTimeout(() => violToast.classList.remove('show'), 4000);
+}
+
+/* ════════════════════════════════════════════
+   SOCKET.IO
+════════════════════════════════════════════ */
+function connectSocket() {
+  if (socket) return;
+  socket = io({ reconnectionDelay:1000, reconnectionAttempts:15 });
+
+  socket.on('connect', () => {
+    socket.emit('register_student', { name:playerName, usn:playerUSN, division: lsGet(K.division)||'—' });
+  });
+
+  socket.on('reconnect', () => {
+    // Re-register after reconnect
+    socket.emit('register_student', { name:playerName, usn:playerUSN, division: lsGet(K.division)||'—' });
+    // Re-submit result if it was pending
+    if (resultSubmitted) {
+      const score   = parseInt(lsGet(K.score)||'0',10);
+      const start   = parseInt(lsGet(K.start)||'0',10);
+      const end     = parseInt(lsGet(K.end)||String(Date.now()),10);
+      const timeSec = start ? Math.max(0,Math.floor((end-start)/1000)) : 0;
+      let log = {}; try { log = JSON.parse(lsGet(K.log)||'{}'); } catch(e){}
+      socket.emit('game_result', {
+        name:     lsGet(K.name)||playerName,
+        usn:      lsGet(K.usn)||playerUSN,
+        division: lsGet(K.division)||'—',
+        score, timeSec, log,
+      });
+    }
+  });
+
+  // Proctor warning
+  socket.on('proctor_warning', ({ message }) => {
+    $('pw-msg').textContent = message || 'The proctor is watching.';
+    proctorWarn.classList.add('show');
+    setTimeout(() => proctorWarn.classList.remove('show'), 14000);
+  });
+
+  // Session terminated
+  socket.on('session_terminated', ({ reason }) => {
+    gameActive = false;
+    gameWrap.style.display = 'none';
+    fsExitOverlay.classList.add('hidden');
+    fsWarnStrip.classList.remove('visible');
+    $('term-reason').textContent = reason || 'Your session has been ended by the proctor.';
+    terminatedScreen.style.display = 'flex';
+    requestAnimationFrame(() => terminatedScreen.classList.remove('hidden'));
+    try { exitFS(); } catch(e) {}
+  });
+}
+
+$('pw-close').addEventListener('click', () => proctorWarn.classList.remove('show'));
+
+/* ════════════════════════════════════════════
+   HEARTBEAT  (every 25s)
+════════════════════════════════════════════ */
+function startHeartbeat() {
+  setInterval(() => {
+    if (!socket || !socket.connected) return;
+    socket.emit('heartbeat', { fullscreen: isFS(), currentRoom });
+  }, 25000);
+}
+</script>
+</body>
+</html>

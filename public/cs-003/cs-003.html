@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeSpot — CS-003 · The Infinite Loop</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<link rel="stylesheet" href="gs-hud.css">
+<script src="gameState.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#050810;--base:#0b1017;--surf:#111827;--raised:#18202e;--hover:#1c2840;--active:#223050;
+  --bdr:#182035;--bdrlit:#263a5a;
+  --tx1:#dce8f8;--tx2:#607898;--tx3:#344860;
+  --blue:#4f9eff;--bdim:rgba(79,158,255,.12);
+  --green:#30d474;--gdim:rgba(48,212,116,.09);
+  --ora:#f0a030;--odim:rgba(240,160,48,.11);
+  --red:#ff4f62;--rdim:rgba(255,79,98,.11);
+  --purple:#a865ff;--pdim:rgba(168,101,255,.11);
+  --r4:4px;--r8:8px;
+  --fui:'Outfit',sans-serif;--fcode:'JetBrains Mono',monospace;
+  --navh:52px;--sbh:24px;
+}
+html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--void);color:var(--tx1)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(79,158,255,.055) 1px,transparent 1px);background-size:30px 30px}
+
+/* NAV */
+#nav{position:relative;z-index:50;height:var(--navh);
+  background:linear-gradient(180deg,rgba(17,24,39,.98),rgba(11,16,23,.98));
+  border-bottom:1px solid var(--bdr);display:flex;align-items:center;
+  padding:0 16px;gap:11px;box-shadow:0 1px 24px rgba(0,0,0,.4)}
+.logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:16px;
+  letter-spacing:-.4px;color:var(--tx1);text-decoration:none}
+.logo-mark{width:32px;height:32px;border-radius:10px;font-size:15px;
+  background:linear-gradient(135deg,#3b82f6,#10d47a);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(79,158,255,.4),0 0 40px rgba(16,212,122,.15)}
+.nsep{width:1px;height:20px;background:var(--bdr)}
+.nbread{font-size:12.5px;color:var(--tx2);display:flex;align-items:center;gap:5px}
+.nbread .cur{color:var(--tx1);font-weight:600}
+.nsp{flex:1}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.b-hard{background:rgba(255,79,98,.11);color:var(--red);border:1px solid rgba(255,79,98,.28)}
+.b-pts{background:var(--gdim);color:var(--green);border:1px solid rgba(48,212,116,.25);
+  font-size:12.5px;padding:4px 12px;font-family:var(--fcode)}
+
+/* ENGINE PILL */
+#engine-pill{display:flex;align-items:center;gap:6px;padding:4px 13px;border-radius:20px;
+  font-size:11px;font-weight:700;font-family:var(--fcode);border:1px solid;transition:all .5s;white-space:nowrap}
+#engine-pill.gcc  {background:rgba(48,212,116,.07);border-color:rgba(48,212,116,.35);color:var(--green)}
+#engine-pill.wan  {background:rgba(79,158,255,.07);border-color:rgba(79,158,255,.3);color:var(--blue)}
+#engine-pill.jscpp{background:rgba(240,160,48,.07);border-color:rgba(240,160,48,.3);color:var(--ora)}
+#engine-pill.wait {background:var(--raised);border-color:var(--bdr);color:var(--tx3)}
+.epulse{width:7px;height:7px;border-radius:50%;flex-shrink:0;animation:ep 2s infinite}
+.gcc .epulse{background:var(--green)}.wan .epulse{background:var(--blue)}
+.jscpp .epulse{background:var(--ora)}.wait .epulse{background:var(--tx3);animation:none}
+@keyframes ep{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.6)}}
+
+/* LAYOUT */
+#app{position:relative;z-index:1;display:flex;height:calc(100vh - var(--navh) - var(--sbh));overflow:hidden}
+#left{width:41%;min-width:280px;max-width:720px;display:flex;flex-direction:column;
+  background:var(--base);border-right:1px solid var(--bdr);overflow:hidden}
+#rsz{width:4px;flex-shrink:0;background:var(--bdr);cursor:col-resize;transition:background .2s}
+#rsz:hover,#rsz.dragging{background:var(--blue)}
+#right{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--base)}
+
+/* LEFT PANEL */
+.ptabs{display:flex;background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 5px}
+.ptab{padding:12px 15px;font-size:12px;font-weight:600;color:var(--tx2);background:transparent;
+  border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;font-family:var(--fui)}
+.ptab:hover{color:var(--tx1)}.ptab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.pbody{flex:1;overflow-y:auto;padding:20px 18px;scrollbar-width:thin;scrollbar-color:var(--raised) transparent}
+.pbody::-webkit-scrollbar{width:4px}.pbody::-webkit-scrollbar-thumb{background:var(--raised);border-radius:2px}
+.p-id{font-size:10px;font-weight:800;color:var(--blue);letter-spacing:1.2px;font-family:var(--fcode)}
+.p-title{font-size:20px;font-weight:900;letter-spacing:-.6px;line-height:1.2;margin:6px 0 10px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
+.tag{padding:2px 9px;background:var(--raised);border:1px solid var(--bdr);border-radius:3px;
+  font-size:11px;color:var(--tx2);font-weight:500}
+.tag.a{background:var(--bdim);color:var(--blue);border-color:rgba(79,158,255,.22)}
+.tag.r{background:rgba(255,79,98,.08);color:var(--red);border-color:rgba(255,79,98,.22)}
+.pbody p{font-size:13px;line-height:1.9;color:rgba(220,232,248,.85);margin-bottom:10px}
+.pbody strong{color:var(--blue);font-weight:700}
+.sec{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--tx3);margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.eg{background:var(--raised);border:1px solid var(--bdr);border-left:3px solid var(--blue);
+  border-radius:0 var(--r8) var(--r8) 0;padding:11px 14px;margin-bottom:9px;font-family:var(--fcode);font-size:11.5px}
+.eg .io{padding:2.5px 0}.ik{color:var(--tx2);margin-right:6px}.iv{color:var(--tx1)}
+.in{color:var(--tx3);font-size:10.5px;margin-top:5px;font-style:italic;line-height:1.65}
+.clist{background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r8);
+  padding:10px 15px;list-style:none}
+.clist li{font-size:12.5px;color:var(--tx2);padding:3.5px 0;display:flex;align-items:flex-start;gap:8px}
+.clist li::before{content:'›';color:var(--blue);font-weight:800;flex-shrink:0}
+.clist li strong{color:var(--blue)}
+
+/* Walkthrough steps */
+.walk-step{display:flex;gap:10px;align-items:flex-start;margin-bottom:7px}
+.ws-num{width:22px;height:22px;border-radius:50%;background:var(--bdim);border:1px solid rgba(79,158,255,.25);
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;
+  color:var(--blue);flex-shrink:0;margin-top:1px}
+.ws-txt{font-size:12px;color:var(--tx2);line-height:1.7}
+.ws-txt strong{color:var(--green)}
+
+/* Scoring table */
+.score-tbl{width:100%;border-collapse:collapse;border-radius:var(--r8);overflow:hidden;border:1px solid var(--bdr)}
+.score-tbl th{text-align:left;padding:7px 11px;background:var(--raised);
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--tx3);border-bottom:1px solid var(--bdr);font-family:var(--fui)}
+.score-tbl td{padding:6px 11px;border-bottom:1px solid rgba(24,32,53,.7);
+  font-family:var(--fcode);font-size:11.5px;color:var(--tx2)}
+.score-tbl tr:last-child td{border-bottom:none}
+.score-tbl tr:hover td{background:var(--raised)}
+.pts-g{color:var(--green);font-weight:800}.pts-p{color:var(--purple);font-weight:800}
+.pts-o{color:var(--ora);font-weight:800}.pts-r{color:var(--red);font-weight:800}
+
+/* Test case table */
+.tc-cat{font-size:11.5px;font-weight:700;color:var(--blue);margin:16px 0 7px 1px;
+  display:flex;align-items:center;gap:7px}
+.tc-cat::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.tct{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--fcode)}
+.tct th{text-align:left;padding:4px 10px;font-weight:700;color:var(--tx3);font-size:10px;
+  text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bdr);font-family:var(--fui)}
+.tct td{padding:4px 10px;color:var(--tx2);border-bottom:1px solid rgba(24,32,53,.6)}
+.tct tr:hover td{background:var(--raised);color:var(--tx1)}
+.mono{font-family:var(--fcode);font-size:11px}
+
+/* Hints */
+.h-intro{font-size:12.5px;color:var(--tx2);line-height:1.7;margin-bottom:16px;padding:10px 14px;
+  background:var(--raised);border-radius:var(--r8);border-left:3px solid var(--ora)}
+.hcard{background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r8);
+  margin-bottom:9px;overflow:hidden;transition:border-color .2s}
+.hcard.on{border-color:rgba(79,158,255,.2)}.hcard.lock{opacity:.4;pointer-events:none}
+.htrig{width:100%;padding:13px 15px;background:transparent;border:none;color:var(--tx1);
+  cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:background .2s;font-family:var(--fui)}
+.htrig:hover{background:var(--hover)}
+.hnum{width:26px;height:26px;background:var(--bdim);border:1px solid rgba(79,158,255,.2);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;color:var(--blue);flex-shrink:0}
+.hlbl{flex:1;font-size:12.5px;font-weight:600}.htog{font-size:10.5px;color:var(--tx3)}
+.hbody{padding:0 15px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .2s;
+  font-size:12.5px;color:var(--tx2);line-height:1.8}
+.hbody.open{max-height:320px;padding:11px 15px 14px;border-top:1px solid var(--bdr)}
+.hbody code{font-family:var(--fcode);background:var(--active);padding:2px 6px;
+  border-radius:3px;font-size:11.5px;color:var(--ora)}
+.hbody .formula{background:rgba(0,80,200,.1);border:1px solid rgba(79,158,255,.2);
+  border-radius:var(--r4);padding:6px 12px;margin:7px 0;font-family:var(--fcode);font-size:12px;color:#a5d6ff}
+
+/* CODE EDITOR */
+.ebar{height:44px;flex-shrink:0;background:var(--surf);border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;padding:0 12px;gap:8px}
+.lang-badge{display:flex;align-items:center;gap:7px;padding:5px 13px;
+  background:var(--bdim);border:1px solid rgba(79,158,255,.25);border-radius:20px;
+  font-size:11.5px;font-weight:800;color:var(--blue);font-family:var(--fcode)}
+.tbtn{padding:5px 11px;background:var(--raised);border:1px solid var(--bdr);
+  border-radius:var(--r4);color:var(--tx2);font-size:11.5px;font-weight:600;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:var(--fui)}
+.tbtn:hover{color:var(--tx1);border-color:var(--bdrlit);background:var(--hover)}
+.ebs{flex:1}
+#cxchip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;
+  display:none;align-items:center;gap:5px}
+#cxchip.s15{display:flex;background:var(--gdim);color:var(--green);border:1px solid rgba(48,212,116,.25)}
+#cxchip.s9 {display:flex;background:var(--pdim);color:var(--purple);border:1px solid rgba(168,101,255,.25)}
+#cxchip.s3 {display:flex;background:var(--odim);color:var(--ora);border:1px solid rgba(240,160,48,.25)}
+
+.CodeMirror{height:100%!important;font-family:var(--fcode)!important;font-size:13.5px!important;
+  line-height:1.7!important;background:#0b1017!important;color:#dce8f8!important;padding:7px 0}
+.CodeMirror-gutters{background:#0b1017!important;border-right:1px solid #182035!important}
+.CodeMirror-linenumber{color:#263a5a!important;min-width:38px;padding-right:11px}
+.CodeMirror-activeline-background{background:#111827!important}
+.CodeMirror-selected{background:#1c2f54!important}
+.CodeMirror-cursor{border-left:2px solid var(--blue)!important}
+.CodeMirror-scroll{padding-bottom:60px}
+.cm-keyword{color:#4f9eff!important;font-weight:700}.cm-type{color:#f0a030!important}
+.cm-def{color:#30d474!important}.cm-variable{color:#dce8f8!important}
+.cm-number{color:#79c0ff!important}.cm-string{color:#a5d6ff!important}
+.cm-comment{color:#263a5a!important;font-style:italic}.cm-operator{color:#c9d1d9!important}
+.cm-builtin{color:#e3b341!important}.cm-atom{color:#ff9e64!important}
+.cm-matchingbracket{background:rgba(79,158,255,.18)!important;color:var(--blue)!important}
+#editor-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+#editor-wrap .CodeMirror{position:absolute;inset:0}
+
+/* BOTTOM PANEL */
+#bot{height:215px;flex-shrink:0;border-top:1px solid var(--bdr);display:flex;flex-direction:column;background:var(--surf)}
+.bbar{height:42px;flex-shrink:0;display:flex;align-items:center;padding:0 12px;gap:8px;border-bottom:1px solid var(--bdr)}
+.btab{padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--tx2);background:transparent;
+  border:none;cursor:pointer;border-radius:var(--r4);transition:all .2s;font-family:var(--fui)}
+.btab:hover{color:var(--tx1);background:var(--raised)}.btab.on{background:var(--raised);color:var(--tx1)}
+.bsp{flex:1}
+.btn-run,.btn-sub,.btn-stop,.btn-key{padding:6px 16px;border-radius:var(--r8);font-size:12.5px;
+  font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px;font-family:var(--fui)}
+.btn-run{background:var(--raised);border:1px solid var(--bdr);color:var(--tx1)}
+.btn-run:hover{background:var(--hover);border-color:var(--bdrlit)}
+.btn-sub{background:linear-gradient(135deg,rgba(48,212,116,.18),rgba(48,212,116,.08));
+  border:1px solid rgba(48,212,116,.3);color:var(--green)}
+.btn-sub:hover{background:linear-gradient(135deg,rgba(48,212,116,.3),rgba(48,212,116,.15));
+  border-color:var(--green);box-shadow:0 0 16px rgba(48,212,116,.18)}
+.btn-stop{background:linear-gradient(135deg,rgba(255,79,98,.18),rgba(255,79,98,.08));
+  border:1px solid rgba(255,79,98,.35);color:var(--red);
+  animation:stop-pulse 1.2s ease-in-out infinite}
+.btn-stop:hover{background:rgba(255,79,98,.3);border-color:var(--red)}
+@keyframes stop-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,79,98,.4)}60%{box-shadow:0 0 0 5px rgba(255,79,98,0)}}
+.btn-key{background:linear-gradient(135deg,rgba(168,101,255,.14),rgba(168,101,255,.05));
+  border:1px solid rgba(168,101,255,.3);color:var(--purple)}
+.btn-key:hover{background:rgba(168,101,255,.24);border-color:var(--purple)}
+.btn-run:disabled,.btn-sub:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+.bcontent{flex:1;overflow-y:auto;overflow-x:auto;padding:10px 14px;
+  font-family:var(--fcode);font-size:12px;line-height:1.7;scrollbar-width:thin;scrollbar-color:var(--raised) transparent}
+.bcontent::-webkit-scrollbar{width:4px;height:4px}.bcontent::-webkit-scrollbar-thumb{background:var(--raised);border-radius:2px}
+.ol{padding:1.5px 0}
+.oi{color:var(--blue)}.oer{color:var(--red)}.own{color:var(--ora)}
+.gcc-err{background:rgba(255,79,98,.05);border-left:3px solid var(--red);padding:7px 13px;margin:2px 0;
+  border-radius:0 var(--r4) var(--r4) 0;font-family:var(--fcode);font-size:11.5px;line-height:1.7;
+  white-space:pre-wrap;word-break:break-word;color:#ff8090}
+.gcc-warn{background:rgba(240,160,48,.05);border-left:3px solid var(--ora);padding:7px 13px;margin:2px 0;
+  border-radius:0 var(--r4) var(--r4) 0;font-family:var(--fcode);font-size:11.5px;line-height:1.7;
+  white-space:pre-wrap;word-break:break-word;color:#f0b860}
+.gcc-note{background:rgba(79,158,255,.04);border-left:3px solid var(--blue);padding:5px 13px;margin:2px 0;
+  border-radius:0 var(--r4) var(--r4) 0;font-family:var(--fcode);font-size:11px;line-height:1.65;
+  white-space:pre-wrap;word-break:break-word;color:#6a99cc}
+.tle-box{background:rgba(255,79,98,.07);border:1px solid rgba(255,79,98,.25);border-radius:var(--r8);
+  padding:10px 14px;margin:8px 0;font-family:var(--fcode);font-size:11.5px;color:#ff8090;line-height:1.7}
+
+/* results table */
+.trg{display:grid;grid-template-columns:28px 1fr 80px 80px 52px;width:100%}
+.trh{padding:5px 8px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--tx3);border-bottom:1px solid var(--bdr);font-family:var(--fui)}
+.trc{padding:3.5px 8px;font-size:11.5px;color:var(--tx2);border-bottom:1px solid rgba(24,32,53,.6);display:flex;align-items:center}
+
+/* STATUS BAR */
+#sb{position:relative;z-index:50;height:var(--sbh);background:#060810;border-top:1px solid var(--bdr);
+  display:flex;align-items:center;padding:0 12px;gap:16px;font-size:10.5px;color:var(--tx3);font-family:var(--fcode)}
+.sbi{display:flex;align-items:center;gap:5px}
+.sbdot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.sbsp{flex:1}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(79,158,255,.2);
+  border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+code{font-family:var(--fcode);background:var(--raised);border:1px solid var(--bdr);
+  padding:1px 6px;border-radius:3px;font-size:11.5px;color:var(--ora)}
+
+/* INFO BOX */
+.info-box{margin-top:14px;padding:10px 14px;border-radius:var(--r8);font-size:12px;line-height:1.75}
+.info-box.green{background:rgba(48,212,116,.05);border:1px solid rgba(48,212,116,.2);color:rgba(140,200,165,.85)}
+
+/* MODALS */
+.ov{display:none;position:fixed;inset:0;z-index:300;align-items:center;justify-content:center}
+.ov.show{display:flex}
+.ov::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,rgba(0,15,50,.97) 0%,rgba(2,4,14,.99) 100%);
+  backdrop-filter:blur(12px)}
+.arc-card{position:relative;z-index:1;width:min(560px,93vw);overflow:hidden;
+  border:1px solid rgba(61,130,255,.38);border-radius:5px;background:rgba(3,10,32,.97);
+  box-shadow:0 0 0 1px rgba(61,130,255,.07),0 0 70px rgba(61,130,255,.2),
+             inset 0 0 100px rgba(0,15,70,.5);animation:arc-in .3s cubic-bezier(.22,1,.36,1)}
+@keyframes arc-in{from{transform:scale(.85) translateY(28px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.arc-card::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:10;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,140,.01) 2px,rgba(0,255,140,.01) 4px)}
+.arc-eyebrow{padding:10px 26px;border-bottom:1px solid rgba(61,130,255,.2);font-family:var(--fcode);
+  font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(100,175,255,.65);text-align:center;background:rgba(61,130,255,.05)}
+.arc-body{padding:28px 32px 24px;text-align:center}
+.arc-title{font-family:'Outfit',sans-serif;font-size:48px;font-weight:900;letter-spacing:-2px;
+  line-height:.95;margin:10px 0 5px;text-transform:uppercase}
+.arc-title.ok{color:#fff;text-shadow:0 0 24px rgba(0,220,255,.9),0 0 70px rgba(61,130,255,.6)}
+.arc-title.ok span{color:#3ff;text-shadow:0 0 24px rgba(0,255,255,1)}
+.arc-title.pu{color:#fff;text-shadow:0 0 24px rgba(168,101,255,.85)}
+.arc-title.pu span{color:#c880ff;text-shadow:0 0 24px rgba(168,101,255,1)}
+.arc-title.wn{color:#fff;text-shadow:0 0 24px rgba(255,180,60,.8)}
+.arc-title.wn span{color:#ffa040;text-shadow:0 0 24px rgba(255,160,0,1)}
+.arc-title.bd{color:#fff;text-shadow:0 0 24px rgba(255,70,80,.8)}
+.arc-title.bd span{color:#ff4040;text-shadow:0 0 24px rgba(255,50,50,1)}
+.arc-subtitle{font-family:var(--fcode);font-size:10px;letter-spacing:2px;
+  color:rgba(120,175,255,.55);margin-bottom:14px;text-transform:uppercase}
+.arc-key{font-family:var(--fcode);font-size:14px;font-weight:700;letter-spacing:3px;
+  padding:13px 20px;margin:12px 0;border-radius:4px;background:rgba(0,80,200,.1);
+  border:1px solid rgba(61,130,255,.42);color:#7cf;
+  box-shadow:inset 0 0 24px rgba(0,60,180,.2),0 0 18px rgba(61,130,255,.1)}
+.arc-key.warn{background:rgba(180,90,0,.09);border-color:rgba(255,150,50,.38);color:#fca}
+.arc-key.pu  {background:rgba(130,60,220,.09);border-color:rgba(168,101,255,.38);color:#c880ff}
+.arc-stats{display:flex;align-items:stretch;margin:14px 0 16px;border:1px solid rgba(61,130,255,.2);
+  border-radius:4px;overflow:hidden;background:rgba(0,25,75,.28)}
+.arc-stat{flex:1;padding:13px 6px;text-align:center;border-right:1px solid rgba(61,130,255,.15)}
+.arc-stat:last-child{border-right:none}
+.arc-stat-val{font-family:var(--fcode);font-size:22px;font-weight:700;letter-spacing:-1px;
+  color:#fff;line-height:1;margin-bottom:5px}
+.arc-stat-val.ok{color:#3ff;text-shadow:0 0 18px rgba(0,220,255,.7)}
+.arc-stat-val.pu{color:#c880ff}.arc-stat-val.wn{color:#ffa040}
+.arc-stat-lbl{font-family:var(--fcode);font-size:9px;font-weight:700;letter-spacing:2px;
+  color:rgba(100,155,255,.45);text-transform:uppercase}
+.arc-info{font-size:12.5px;color:rgba(140,178,220,.7);line-height:1.75;margin-bottom:14px}
+.arc-info strong{color:rgba(180,218,255,.9)}
+.arc-deduct{font-family:var(--fcode);font-size:10.5px;letter-spacing:.5px;color:rgba(255,155,75,.65);margin:-8px 0 12px}
+.arc-acts{display:flex;gap:9px;justify-content:center}
+.arc-btn{padding:11px 28px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;cursor:pointer;transition:all .15s;font-family:var(--fcode);border:none}
+.arc-btn-ok{background:rgba(0,120,255,.14);color:#7cf;border:1px solid rgba(61,130,255,.5)}
+.arc-btn-ok:hover{background:rgba(0,120,255,.28)}
+.arc-btn-pu{background:rgba(130,60,220,.12);color:#c880ff;border:1px solid rgba(168,101,255,.42)}
+.arc-btn-pu:hover{background:rgba(130,60,220,.26)}
+.arc-btn-wn{background:rgba(180,90,0,.11);color:#fca;border:1px solid rgba(255,150,50,.42)}
+.arc-btn-wn:hover{background:rgba(200,100,0,.24)}
+.arc-btn-bd{background:rgba(180,0,0,.11);color:#f88;border:1px solid rgba(220,60,60,.42)}
+.arc-btn-bd:hover{background:rgba(200,0,0,.24)}
+.arc-btn-gh{background:transparent;color:rgba(120,158,200,.7);border:1px solid rgba(61,100,160,.35)}
+.arc-btn-gh:hover{color:rgba(180,210,255,.9)}
+.arc-hint-pts{display:flex;justify-content:center;align-items:center;gap:22px;
+  background:rgba(0,18,58,.5);border:1px solid rgba(61,100,200,.22);border-radius:4px;
+  padding:13px;margin:12px 0;font-family:var(--fcode);font-size:12px}
+.arc-hint-pts .val{font-size:22px;font-weight:700}
+.arc-hint-pts .arr{color:rgba(100,140,200,.45);font-size:16px}
+.arc-wrong-box{background:rgba(180,0,0,.07);border:1px solid rgba(220,60,60,.22);border-radius:4px;
+  padding:11px 14px;margin:9px 0 15px;font-size:11.5px;color:rgba(200,155,160,.9);
+  line-height:1.75;text-align:left;font-family:var(--fcode);white-space:pre-wrap;
+  word-break:break-word;max-height:200px;overflow-y:auto}
+.key-input-wrap{display:flex;gap:9px;margin:16px 0 6px}
+.key-input{flex:1;background:rgba(0,20,60,.6);border:1px solid rgba(61,130,255,.35);
+  border-radius:4px;padding:11px 14px;font-family:var(--fcode);font-size:15px;
+  font-weight:700;letter-spacing:4px;color:#7cf;text-transform:uppercase;outline:none;
+  transition:border-color .2s;text-align:center;width:100%}
+.key-input:focus{border-color:rgba(61,130,255,.65);box-shadow:0 0 14px rgba(61,130,255,.15)}
+.key-input.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.key-input.wrong{border-color:rgba(255,79,98,.6);color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav">
+  <a class="logo" href="#"><div class="logo-mark">⚡</div>CodeSpot</a>
+  <div class="nsep"></div>
+  <div class="nbread">
+    <span>Rooms</span><span style="color:var(--tx3)">›</span>
+    <span class="cur">CS-003 · The Infinite Loop</span>
+  </div>
+  <div class="nsp"></div>
+  <div id="engine-pill" class="wait"><span class="epulse"></span><span id="engine-txt">Initializing…</span></div>
+  <span class="badge b-hard">Hard</span>
+  <span class="badge b-pts" id="score-badge">0 / 30 pts</span>
+</nav>
+
+<div id="app">
+
+<!-- ═══ LEFT ═══ -->
+<div id="left">
+  <div class="ptabs">
+    <button class="ptab on"  onclick="stab(this,'t-desc')">⛽ Problem</button>
+    <button class="ptab"     onclick="stab(this,'t-tc')">🧪 Tests</button>
+    <button class="ptab"     onclick="stab(this,'t-hint')">💡 Hints</button>
+  </div>
+
+  <!-- Problem -->
+  <div class="pbody" id="t-desc">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="p-id">#CS-003</span><span class="badge b-hard">Hard</span>
+    </div>
+    <div class="p-title">The Infinite Loop ⛽</div>
+    <div class="tags">
+      <span class="tag a">Greedy</span><span class="tag a">Array</span>
+      <span class="tag a">Single Pass</span><span class="tag r">O(n) Required</span>
+      <span class="tag">30 pts</span><span class="tag">C (C11)</span>
+    </div>
+
+    <p>There are <code>n</code> charging stations arranged in a <strong>circular route</strong>. Station <code>i</code> provides <code>gas[i]</code> energy. Travelling from station <code>i</code> to <code>i+1</code> costs <code>cost[i]</code> energy.</p>
+    <p>You start with an <strong>empty tank</strong>. Find the starting station index that lets you complete one full clockwise circle without running out of energy. If no such station exists, return <strong>-1</strong>.</p>
+    <p>The answer, if it exists, is <strong>guaranteed to be unique</strong>.</p>
+
+    <div class="sec">Function Signature</div>
+    <div style="background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r8);
+      padding:11px 14px;font-family:var(--fcode);font-size:12.5px;margin-bottom:5px">
+      <span style="color:var(--blue)">int</span>
+      <span style="color:var(--tx1)"> canCompleteCircuit(</span>
+      <span style="color:var(--blue)">int</span><span style="color:var(--tx1)">* gas, </span>
+      <span style="color:var(--blue)">int</span><span style="color:var(--tx1)">* cost, </span>
+      <span style="color:var(--blue)">int</span><span style="color:var(--tx1)"> n);</span>
+    </div>
+
+    <div class="sec">Example</div>
+    <div class="eg">
+      <div class="io"><span class="ik">gas :</span><span class="iv">[1, 2, 3, 4, 5]</span></div>
+      <div class="io"><span class="ik">cost:</span><span class="iv">[3, 4, 5, 1, 2]</span></div>
+      <div class="io" style="margin-top:4px"><span class="ik">Output:</span><span class="iv" style="color:var(--green)">3</span></div>
+      <div class="in">
+        Start at index 3 (gas=4). Move to 4: costs 1, refill 5 → tank=8.<br>
+        Move to 0: costs 2, refill 1 → tank=7. Continue through 1, 2 — just enough to reach 3 again. ✓
+      </div>
+    </div>
+
+    <div class="sec">Walkthrough from Index 3</div>
+    <div style="background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r8);padding:12px 14px">
+      <div class="walk-step"><div class="ws-num">1</div><div class="ws-txt">At station 3: fill 4. Tank = <strong>4</strong></div></div>
+      <div class="walk-step"><div class="ws-num">2</div><div class="ws-txt">Drive to 4 (cost 1). Refill 5. Tank = <strong>4−1+5 = 8</strong></div></div>
+      <div class="walk-step"><div class="ws-num">3</div><div class="ws-txt">Drive to 0 (cost 2). Refill 1. Tank = <strong>8−2+1 = 7</strong></div></div>
+      <div class="walk-step"><div class="ws-num">4</div><div class="ws-txt">Drive to 1 (cost 3). Refill 2. Tank = <strong>7−3+2 = 6</strong></div></div>
+      <div class="walk-step"><div class="ws-num">5</div><div class="ws-txt">Drive to 2 (cost 4). Refill 3. Tank = <strong>6−4+3 = 5</strong></div></div>
+      <div class="walk-step"><div class="ws-num">6</div><div class="ws-txt">Drive back to 3 (cost 5). Tank = <strong>5−5 = 0</strong> ✓ Complete!</div></div>
+    </div>
+
+    <div class="sec">Constraints</div>
+    <ul class="clist">
+      <li>1 ≤ n ≤ 10⁵</li>
+      <li>0 ≤ gas[i], cost[i] ≤ 10⁴</li>
+      <li>Return <strong>-1</strong> if impossible</li>
+      <li>O(n) time required for full marks</li>
+    </ul>
+
+    <div class="sec">Scoring</div>
+    <table class="score-tbl">
+      <thead><tr><th>Approach</th><th>Time</th><th>Result</th><th>Score</th></tr></thead>
+      <tbody>
+        <tr><td>Single-pass greedy</td><td>O(n)</td><td>✓ All pass</td><td class="pts-g">30 / 30</td></tr>
+        <tr><td>Brute-force / nested loop</td><td>O(n²) or other</td><td>✓ All pass</td><td class="pts-o">20 / 30</td></tr>
+        <tr><td>—</td><td>—</td><td>✗ Any fail / TLE</td><td class="pts-r">0 / 30</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box green">
+      <i class="fa-solid fa-microchip" style="color:var(--green);margin-right:7px"></i>
+      <strong style="color:var(--green)">Local GCC/MinGW Compiler</strong><br>
+      Real C11 compilation — same as VS Code. Falls back to online GCC, then browser interpreter.
+    </div>
+  </div>
+
+  <!-- Test Cases -->
+  <div class="pbody" id="t-tc" style="display:none">
+    <div class="tc-cat">① Standard Success</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>n</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[1,2,3,4,5]</td><td class="mono">[3,4,5,1,2]</td><td>5</td><td class="mono" style="color:var(--green)">3</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">② Impossible Journey</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>n</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[2,3,4]</td><td class="mono">[3,4,3]</td><td>3</td><td class="mono" style="color:var(--red)">-1</td></tr>
+    </tbody></table>
+    <div style="font-size:11.5px;color:var(--tx3);padding:4px 2px;font-family:var(--fcode)">
+      Total gas (9) &lt; Total cost (10) → impossible
+    </div>
+
+    <div class="tc-cat">③ Last-Minute Start</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>n</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[5,1,2,3,4]</td><td class="mono">[4,4,1,5,1]</td><td>5</td><td class="mono" style="color:var(--green)">4</td></tr>
+    </tbody></table>
+    <div style="font-size:11.5px;color:var(--tx3);padding:4px 2px;font-family:var(--fcode)">
+      Forces start at last index — catches off-by-one bugs
+    </div>
+
+    <div class="tc-cat">④ Single Station — Possible</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[5]</td><td class="mono">[4]</td><td class="mono" style="color:var(--green)">0</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">⑤ Single Station — Impossible</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[3]</td><td class="mono">[5]</td><td class="mono" style="color:var(--red)">-1</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">⑥ Two Elements</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[1,2]</td><td class="mono">[2,1]</td><td class="mono" style="color:var(--green)">1</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">⑦ All Balanced (start=0)</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[3,3,3]</td><td class="mono">[3,3,3]</td><td class="mono" style="color:var(--green)">0</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">⑧ Surplus Only at End</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[1,1,1,1,5]</td><td class="mono">[2,2,2,2,1]</td><td class="mono" style="color:var(--green)">4</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">⑨ Mid-Traverse Required</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[4,5,3,2,6]</td><td class="mono">[3,2,7,3,2]</td><td class="mono" style="color:var(--green)">4</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">⑩ Extra — Start at 0</div>
+    <table class="tct"><thead><tr><th>gas</th><th>cost</th><th>Expected</th></tr></thead><tbody>
+      <tr><td class="mono">[3,3,3,2,2]</td><td class="mono">[1,2,3,3,4]</td><td class="mono" style="color:var(--green)">0</td></tr>
+    </tbody></table>
+
+    <div class="tc-cat">⑪ O(n²) Killer — n=2000</div>
+    <div style="background:rgba(255,79,98,.06);border:1px solid rgba(255,79,98,.2);border-radius:var(--r8);
+      padding:10px 13px;font-size:12px;color:rgba(200,150,155,.9);font-family:var(--fcode);line-height:1.7">
+      gas = [1, 1, 1, …, 1, 2001] &nbsp;<span style="color:var(--tx3)">(1999 ones + 2001)</span><br>
+      cost = [2, 2, 2, …, 2, 2] &nbsp;&nbsp;&nbsp;<span style="color:var(--tx3)">(2000 twos)</span><br>
+      n = 2000 &nbsp;→ Expected: <span style="color:var(--green)">1999</span><br>
+      <span style="color:var(--tx3);font-size:11px">O(n²) ≈ 4,000,000 iterations — will TLE in 8s</span>
+    </div>
+
+    <div class="tc-cat">⑫ Large All-Negative Prefix — n=500</div>
+    <div style="background:rgba(255,79,98,.06);border:1px solid rgba(255,79,98,.2);border-radius:var(--r8);
+      padding:10px 13px;font-size:12px;color:rgba(200,150,155,.9);font-family:var(--fcode);line-height:1.7">
+      net[i] = -1 for i=0..498, net[499] = 499<br>
+      n = 500 → Expected: <span style="color:var(--green)">499</span>
+    </div>
+  </div>
+
+  <!-- Hints -->
+  <div class="pbody" id="t-hint" style="display:none">
+    <div class="h-intro">💡 Each hint costs <strong style="color:var(--red)">−3 points</strong>. Hints unlock one at a time.</div>
+    <div id="hint-tracker" style="display:flex;align-items:center;justify-content:space-between;
+      background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r8);padding:10px 15px;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--tx2)">
+        <i class="fa-solid fa-lightbulb" style="color:var(--ora);margin-right:7px"></i>
+        Hints: <span id="hints-used" style="color:var(--tx1);font-weight:700">0 / 3</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx2)">
+        Max: <span id="max-pts" style="color:var(--green);font-weight:800;font-size:15px">30</span><span style="color:var(--tx3)"> pts</span>
+      </div>
+    </div>
+
+    <div class="hcard on" id="hc1">
+      <button class="htrig" onclick="revHint(1)">
+        <div class="hnum">1</div><span class="hlbl">The "Impossible" Check</span>
+        <span id="hcost1" style="font-size:10px;background:var(--rdim);color:var(--red);
+          border:1px solid rgba(255,79,98,.22);padding:2px 7px;border-radius:10px;margin-right:5px">−5 pts</span>
+        <span class="htog" id="ht1">▶ Reveal</span>
+      </button>
+      <div class="hbody" id="hb1">
+        <div style="color:var(--ora);font-size:11px;margin-bottom:8px;font-weight:700">💡 HINT 1 — The "Impossible" Check</div>
+        Before you even start simulating, think about the <strong>total gas vs. the total cost</strong>. If the sum of all gas at every station is less than the sum of all costs, is it even possible to finish the circuit from any station?
+        <div class="formula">Mathematical Logic: If Σ gas[i] &lt; Σ cost[i], return -1 immediately.</div>
+      </div>
+    </div>
+
+    <div class="hcard lock" id="hc2">
+      <button class="htrig" onclick="revHint(2)">
+        <div class="hnum">2</div><span class="hlbl">The "Broken Bridge" Concept</span>
+        <span id="hcost2" style="font-size:10px;background:var(--rdim);color:var(--red);
+          border:1px solid rgba(255,79,98,.22);padding:2px 7px;border-radius:10px;margin-right:5px">−5 pts</span>
+        <span class="htog" id="ht2">🔒 Locked</span>
+      </button>
+      <div class="hbody" id="hb2">
+        <div style="color:var(--ora);font-size:11px;margin-bottom:8px;font-weight:700">💡 HINT 2 — The "Broken Bridge" Concept</div>
+        If you start at station <strong>A</strong> and run out of gas at station <strong>B</strong>, don't bother trying to start at any station between A and B. None of those stations will have enough "surplus" gas to get you past station B either.
+        <div class="formula">Action: If current_gas drops below zero at index i,<br>your next potential starting point should be i + 1.</div>
+      </div>
+    </div>
+
+    <div class="hcard lock" id="hc3">
+      <button class="htrig" onclick="revHint(3)">
+        <div class="hnum">3</div><span class="hlbl">The Greedy Optimization (The O(n) Secret)</span>
+        <span id="hcost3" style="font-size:10px;background:var(--rdim);color:var(--red);
+          border:1px solid rgba(255,79,98,.22);padding:2px 7px;border-radius:10px;margin-right:5px">−5 pts</span>
+        <span class="htog" id="ht3">🔒 Locked</span>
+      </button>
+      <div class="hbody" id="hb3">
+        <div style="color:var(--ora);font-size:11px;margin-bottom:8px;font-weight:700">💡 HINT 3 — The Greedy Optimization (The O(n) Secret)</div>
+        You only need <strong>one pass</strong> through the array. Keep track of two things:
+        <div class="formula">
+          Total Surplus  : overall balance of (Gas − Cost) for the entire trip.<br>
+          Current Tank   : your gas balance since your last attempted starting point.<br><br>
+          If current_tank hits a negative number →<br>
+          &nbsp;&nbsp;reset it to zero and set the next station as your new starting candidate.<br><br>
+          If total_surplus ≥ 0 at the end → your last candidate is the winner.
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /left -->
+
+<div id="rsz"></div>
+
+<!-- ═══ RIGHT ═══ -->
+<div id="right">
+  <div class="ebar">
+    <div class="lang-badge"><i class="fa-solid fa-c" style="font-size:12px"></i>&nbsp;C11</div>
+    <button class="tbtn" onclick="resetCode()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+    <button class="tbtn" onclick="copyCode()"><i class="fa-regular fa-copy"></i> Copy</button>
+    <div class="ebs"></div>
+    <div id="cxchip"></div>
+  </div>
+  <div id="editor-wrap"><textarea id="cm-src"></textarea></div>
+  <div id="bot">
+    <div class="bbar">
+      <button class="btab on" onclick="sbtab(this,'b-out')">Output</button>
+      <button class="btab"    onclick="sbtab(this,'b-tr')">Test Results</button>
+      <div class="bsp"></div>
+      <button class="btn-key" id="btn-key" onclick="openKeyModal()">
+        <i class="fa-solid fa-key"></i> Key
+      </button>
+      <button class="btn-stop" id="btn-stop" onclick="terminateRun()" style="display:none">
+        <i class="fa-solid fa-stop"></i> Stop
+      </button>
+      <button class="btn-run" id="btn-run" onclick="runCode()">
+        <i class="fa-solid fa-play"></i> Run
+      </button>
+      <button class="btn-sub" id="btn-sub" onclick="submitCode()">
+        <i class="fa-solid fa-paper-plane"></i> Submit
+      </button>
+    </div>
+    <div class="bcontent" id="b-out">
+      <div class="ol oi">// Compiler ready — implement canCompleteCircuit() and press Run.</div>
+    </div>
+    <div class="bcontent" id="b-tr" style="display:none">
+      <div class="ol oi">// Press Submit to evaluate all 12 test cases.</div>
+    </div>
+  </div>
+</div>
+</div><!-- /app -->
+
+<div id="sb">
+  <div class="sbi"><div class="sbdot"></div>CodeSpot</div>
+  <div class="sbi" id="sb-msg">Connecting to compiler…</div>
+  <div class="sbsp"></div>
+  <div class="sbi">CS-003</div>
+  <div class="sbi" id="sb-engine">—</div>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Hint confirm -->
+<div class="ov" id="m-hint-confirm">
+  <div class="arc-card" style="max-width:420px">
+    <div class="arc-eyebrow">HINT PROTOCOL — AUTHORIZATION REQUIRED</div>
+    <div class="arc-body">
+      <div class="arc-subtitle" id="hc-title">USE HINT 1?</div>
+      <div style="font-size:13px;color:rgba(160,200,255,.8);margin-bottom:14px">This will deduct <strong style="color:#f99">5 points</strong> from your maximum score.</div>
+      <div class="arc-hint-pts">
+        <div style="text-align:center"><div class="val" style="color:#3ff" id="hc-before">30</div><div style="font-size:9px;letter-spacing:2px;color:rgba(100,160,255,.45)">CURRENT MAX</div></div>
+        <div class="arr">→</div>
+        <div style="text-align:center"><div class="val" style="color:#fca" id="hc-after">25</div><div style="font-size:9px;letter-spacing:2px;color:rgba(100,160,255,.45)">AFTER HINT</div></div>
+      </div>
+      <div class="arc-acts" style="margin-top:6px">
+        <button class="arc-btn arc-btn-gh" onclick="closeM('m-hint-confirm')">CANCEL</button>
+        <button class="arc-btn arc-btn-wn" id="hc-confirm-btn">REVEAL −5 PTS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 30/30 Perfect — O(n) -->
+<div class="ov" id="m-perfect">
+  <div class="arc-card">
+    <div class="arc-eyebrow">GREEDY ALGORITHM — VERIFIED OPTIMAL</div>
+    <div class="arc-body">
+      <div class="arc-title ok">KEY<br><span>FOUND</span></div>
+      <div class="arc-subtitle">ALL 12 TESTS PASSED — O(N) DETECTED</div>
+      <div class="arc-key" id="key-perfect">CS003-XXXXXX-XXXX</div>
+      <div class="arc-stats">
+        <div class="arc-stat"><div class="arc-stat-val ok" id="perfect-score">30</div><div class="arc-stat-lbl">Score</div></div>
+        <div class="arc-stat"><div class="arc-stat-val ok">12</div><div class="arc-stat-lbl">Tests</div></div>
+        <div class="arc-stat"><div class="arc-stat-val ok">O(n)</div><div class="arc-stat-lbl">Time</div></div>
+        <div class="arc-stat"><div class="arc-stat-val ok">Single Pass</div><div class="arc-stat-lbl">Approach</div></div>
+      </div>
+      <div class="arc-deduct" id="perfect-deduct" style="display:none"></div>
+      <div class="arc-acts"><button class="arc-btn arc-btn-ok" onclick="closeM('m-perfect')">CONTINUE</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 20/30 Partial — O(n²) or brute force -->
+<div class="ov" id="m-partial">
+  <div class="arc-card">
+    <div class="arc-eyebrow">CORRECT — BUT SUBOPTIMAL TIME COMPLEXITY</div>
+    <div class="arc-body">
+      <div class="arc-title wn">PARTIAL<br><span>CREDIT</span></div>
+      <div class="arc-subtitle">O(N²) / BRUTE-FORCE — O(N) REQUIRED FOR FULL MARKS</div>
+      <div class="arc-stats">
+        <div class="arc-stat"><div class="arc-stat-val wn">20</div><div class="arc-stat-lbl">Score</div></div>
+        <div class="arc-stat"><div class="arc-stat-val ok">12</div><div class="arc-stat-lbl">Tests</div></div>
+        <div class="arc-stat"><div class="arc-stat-val wn">O(n²)</div><div class="arc-stat-lbl">Time</div></div>
+      </div>
+      <div class="arc-info">All tests pass but nested loop detected. <strong>20 / 30 marks</strong>.<br>
+        Use the single-pass greedy approach for O(n) → <strong>30 pts</strong>.</div>
+      <div class="arc-acts">
+        <button class="arc-btn arc-btn-gh" onclick="closeM('m-partial')">RECODE</button>
+        <button class="arc-btn arc-btn-wn" onclick="acceptPartial()">ACCEPT 20 PTS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 20/30 accepted -->
+<div class="ov" id="m-partial-done">
+  <div class="arc-card">
+    <div class="arc-eyebrow">20 / 30 PTS GRANTED</div>
+    <div class="arc-body">
+      <div class="arc-title wn">KEY<br><span>ISSUED</span></div>
+      <div class="arc-subtitle">O(N²) SOLUTION ACCEPTED — 20 PTS</div>
+      <div class="arc-key warn" id="key-partial">CS003-XXXXXX-XXXX</div>
+      <div class="arc-stats">
+        <div class="arc-stat"><div class="arc-stat-val wn">20</div><div class="arc-stat-lbl">Score</div></div>
+        <div class="arc-stat"><div class="arc-stat-val ok">12</div><div class="arc-stat-lbl">Tests</div></div>
+        <div class="arc-stat"><div class="arc-stat-val wn">O(n²)</div><div class="arc-stat-lbl">Time</div></div>
+      </div>
+      <div class="arc-info">Recode with single-pass greedy for <strong>O(n) → 30/30</strong>.</div>
+      <div class="arc-acts"><button class="arc-btn arc-btn-ok" onclick="closeM('m-partial-done')">DONE</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Wrong -->
+<div class="ov" id="m-wrong">
+  <div class="arc-card">
+    <div class="arc-eyebrow">VERIFICATION FAILED</div>
+    <div class="arc-body">
+      <div class="arc-title bd">WRONG<br><span>ANSWER</span></div>
+      <div class="arc-subtitle" id="wrong-sub">OUTPUT MISMATCH</div>
+      <div class="arc-wrong-box" id="wrong-msg"></div>
+      <div class="arc-acts"><button class="arc-btn arc-btn-bd" onclick="closeM('m-wrong')">RECODE</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Key entry -->
+<div class="ov" id="m-key-entry">
+  <div class="arc-card" style="max-width:440px">
+    <div class="arc-eyebrow">ROOM KEY VERIFICATION — CS-003</div>
+    <div class="arc-body">
+      <div style="font-size:34px;margin-bottom:6px">🔑</div>
+      <div class="arc-subtitle">ENTER YOUR ROOM ACCESS KEY</div>
+      <div style="font-size:12.5px;color:rgba(160,200,255,.7);margin-bottom:6px;line-height:1.75">
+        If you have been given a key for this room, enter it below.<br>
+        <span style="color:rgba(255,79,98,.8);font-size:11.5px">⚠ Using someone else's key awards <strong style="color:var(--red)">0 marks</strong>.</span>
+      </div>
+      <div class="key-input-wrap">
+        <input class="key-input" id="key-input-field" type="text" maxlength="20"
+          placeholder="CS-002"
+          onkeydown="if(event.key==='Enter')submitKey()"
+          oninput="this.value=this.value.toUpperCase();this.classList.remove('wrong','shake');document.getElementById('key-input-msg').textContent=''" />
+      </div>
+      <div id="key-input-msg" style="font-family:var(--fcode);font-size:11px;color:var(--red);
+        min-height:18px;margin-bottom:8px;letter-spacing:.5px;text-align:center"></div>
+      <div class="arc-acts">
+        <button class="arc-btn arc-btn-gh" onclick="closeM('m-key-entry')">CANCEL</button>
+        <button class="arc-btn arc-btn-pu" onclick="submitKey()">
+          <i class="fa-solid fa-key"></i>&nbsp; VERIFY KEY
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Key found (0 marks) -->
+<div class="ov" id="m-key-zero">
+  <div class="arc-card">
+    <div class="arc-eyebrow">KEY VERIFIED — ACCESS GRANTED WITH 0 MARKS</div>
+    <div class="arc-body">
+      <div class="arc-title bd">KEY<br><span>FOUND</span></div>
+      <div class="arc-subtitle">ROOM ACCESSED WITHOUT SOLVING</div>
+      <div class="arc-key warn">CS-003</div>
+      <div class="arc-stats">
+        <div class="arc-stat"><div class="arc-stat-val" style="color:var(--red);font-size:28px">0</div><div class="arc-stat-lbl">Score</div></div>
+        <div class="arc-stat"><div class="arc-stat-val" style="color:var(--tx3)">—</div><div class="arc-stat-lbl">Tests Run</div></div>
+        <div class="arc-stat"><div class="arc-stat-val" style="color:var(--tx3)">—</div><div class="arc-stat-lbl">Complexity</div></div>
+      </div>
+      <div class="arc-info">Key accepted. <strong>0 / 30 marks</strong> awarded for access without solving.<br>
+        Implement <code>canCompleteCircuit()</code> and Submit to earn up to <strong>30 pts</strong>.</div>
+      <div class="arc-acts"><button class="arc-btn arc-btn-ok" onclick="closeM('m-key-zero')">CONTINUE</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════
+//  TEST CASES  (12 total)
+// ═══════════════════════════════════════
+// Generate large test cases programmatically
+const _large2000 = (() => {
+  const gas  = new Array(1999).fill(1); gas.push(2001);
+  const cost = new Array(2000).fill(2);
+  return { n:2000, gas, cost, exp:'1999', cat:'O(n²) Killer' };
+})();
+
+const _large500 = (() => {
+  const gas  = new Array(499).fill(1); gas.push(500);
+  const cost = new Array(499).fill(2); cost.push(1);
+  return { n:500, gas, cost, exp:'499', cat:'Large Prefix' };
+})();
+
+const TC = [
+  { n:5,   gas:[1,2,3,4,5],     cost:[3,4,5,1,2],     exp:'3',  cat:'Standard'   },
+  { n:3,   gas:[2,3,4],         cost:[3,4,3],           exp:'-1', cat:'Impossible' },
+  { n:5,   gas:[5,1,2,3,4],     cost:[4,4,1,5,1],       exp:'4',  cat:'Last-Minute'},
+  { n:1,   gas:[5],             cost:[4],               exp:'0',  cat:'Single ✓'  },
+  { n:1,   gas:[3],             cost:[5],               exp:'-1', cat:'Single ✗'  },
+  { n:2,   gas:[1,2],           cost:[2,1],             exp:'1',  cat:'Two-elem'  },
+  { n:3,   gas:[3,3,3],         cost:[3,3,3],           exp:'0',  cat:'Balanced'  },
+  { n:5,   gas:[1,1,1,1,5],     cost:[2,2,2,2,1],       exp:'4',  cat:'End Surplus'},
+  { n:5,   gas:[4,5,3,2,6],     cost:[3,2,7,3,2],       exp:'4',  cat:'Mid-traverse'},
+  { n:5,   gas:[3,3,3,2,2],     cost:[1,2,3,3,4],       exp:'0',  cat:'Start@0'   },
+  _large2000,
+  _large500,
+];
+
+const TMPL = `#include <stdio.h>
+#define MAXN 200005
+
+int gas_arr[MAXN], cost_arr[MAXN];
+
+/*
+ * TODO: Implement canCompleteCircuit(gas, cost, n)
+ *
+ * Scoring:
+ *   O(n) single-pass greedy  →  30/30 pts
+ *   O(n²) or brute force     →  20/30 pts
+ *   Wrong output             →   0/30 pts
+ *
+ * Return the starting station index, or -1 if impossible.
+ */
+int canCompleteCircuit(int* gas, int* cost, int n) {
+    /* Write your solution here */
+    
+    
+    
+}
+
+/* ======== DO NOT MODIFY BELOW ======== */
+int main(void) {
+    int t;
+    scanf("%d", &t);
+    while (t--) {
+        int n, i;
+        scanf("%d", &n);
+        for (i = 0; i < n; i++) scanf("%d", &gas_arr[i]);
+        for (i = 0; i < n; i++) scanf("%d", &cost_arr[i]);
+        printf("%d\\n", canCompleteCircuit(gas_arr, cost_arr, n));
+    }
+    return 0;
+}`;
+
+// ═══════════════════════════════════════
+//  ENGINE PRIORITY
+//  1. Local GCC  (server.js running)
+//  2. Piston     (online GCC)
+//  3. Wandbox    (online GCC)
+//  Browser JS interpreter: DISABLED — real C only
+// ═══════════════════════════════════════
+let ACTIVE_ENGINE = null;
+
+// Relative URL when served via server.js, absolute when opened as file://
+const LOCAL_BASE = (location.protocol === 'http:' || location.protocol === 'https:')
+                     ? '' : 'http://localhost:3000';
+const LOCAL_URL  = LOCAL_BASE + '/compile';
+const LOCAL_INFO = LOCAL_BASE + '/gcc-info';
+
+async function localGCCRun(code, stdin, signal) {
+  const res = await fetch(LOCAL_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ code, stdin }),
+    signal: signal || AbortSignal.timeout(20000),
+  });
+  if (!res.ok) throw new Error('Local server HTTP ' + res.status);
+  const d = await res.json();
+  if (d.error) throw new Error(d.error);
+  return { compileErr:d.compileErr||'', compileCode:d.compileCode||0,
+           runOut:d.runOut||'', runErr:d.runErr||'', runCode:d.runCode||0,
+           engine:d.engine||'GCC · Local (MinGW)' };
+}
+
+async function pistonRun(code, stdin, signal) {
+  const res = await fetch('https://emkc.org/api/v2/piston/execute', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      language:'c', version:'*',
+      files:[{name:'sol.c', content:code}], stdin,
+      compile_timeout:12000, run_timeout:8000,
+      compile_args:['-Wall','-std=c11','-lm','-O2'],
+    }),
+    signal: signal || AbortSignal.timeout(18000),
+  });
+  if (!res.ok) throw new Error('Piston HTTP ' + res.status);
+  const d = await res.json();
+  return { compileErr:(d.compile&&d.compile.stderr)||'',
+           compileCode:(d.compile&&typeof d.compile.code==='number')?d.compile.code:0,
+           runOut:(d.run&&d.run.stdout)||'', runErr:(d.run&&d.run.stderr)||'',
+           runCode:(d.run&&d.run.code)||0, engine:'GCC · Piston (online)' };
+}
+
+async function wandboxRun(code, stdin, signal) {
+  const res = await fetch('https://wandbox.org/api/compile.json', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ compiler:'gcc-head', code, stdin,
+      'compiler-option-raw':'-Wall -std=c11 -lm -O2' }),
+    signal: signal || AbortSignal.timeout(18000),
+  });
+  if (!res.ok) throw new Error('Wandbox HTTP ' + res.status);
+  const d = await res.json();
+  return { compileErr:d.compiler_error||'',
+           compileCode:(d.status==='0'||!d.compiler_error)?0:1,
+           runOut:d.program_output||'', runErr:d.program_error||'',
+           runCode:parseInt(d.status||'0',10), engine:'GCC · Wandbox (online)' };
+}
+
+// ═══════════════════════════════════════
+//  BROWSER C→JS INTERPRETER (offline fallback)
+//  Handles int* array parameters natively —
+//  array indexing gas[i] is identical syntax in JS!
+//  No BigInt needed — values fit in regular JS numbers.
+// ═══════════════════════════════════════
+let _activeWorker = null;
+let _abortCtrl    = null;
+
+function terminateRun() {
+  if (_activeWorker) { _activeWorker.terminate(); _activeWorker = null; }
+  if (_abortCtrl)    { _abortCtrl.abort(); _abortCtrl = null; }
+  const msg = '<div class="ol oer"><i class="fa-solid fa-stop"></i> Execution terminated. Check your code for infinite loops.</div>';
+  document.getElementById('b-out').innerHTML = msg;
+  document.getElementById('b-tr').innerHTML  = msg;
+  showStopButton(false);
+  _done();
+}
+
+function showStopButton(show) {
+  document.getElementById('btn-stop').style.display = show ? 'flex' : 'none';
+}
+
+function browserRun(code, stdin) {
+  return new Promise((resolve) => {
+    const conv = cToJS(code);
+    if (!conv.ok) {
+      resolve({ compileErr:'error: '+conv.err, compileCode:1, runOut:'', runErr:'', runCode:1, engine:'Browser Interpreter (offline)' });
+      return;
+    }
+
+    // Serialize test inputs to pass to worker
+    const lines = stdin.split('\n').map(l => l.trim()).filter(Boolean);
+    const count = parseInt(lines[0], 10) || 0;
+    const tests = [];
+    let li = 1;
+    for (let i = 0; i < count; i++) {
+      const n    = parseInt(lines[li++], 10);
+      const gas  = (lines[li++] || '').split(/\s+/).map(Number);
+      const cost = (lines[li++] || '').split(/\s+/).map(Number);
+      tests.push({ n, gas, cost });
+    }
+
+    const workerSrc = `
+      self.onmessage = function(ev) {
+        var d = ev.data;
+        try {
+          var fn = new Function('gas', 'cost', 'n', d.fnBody);
+          var out = [];
+          for (var i = 0; i < d.tests.length; i++) {
+            var t = d.tests[i];
+            try {
+              var r = fn(t.gas, t.cost, t.n);
+              out.push(String(Math.round(Number(r))));
+            } catch(e2) {
+              self.postMessage({ type:'runtimeError', idx:i, msg:e2.message, partial:out });
+              return;
+            }
+          }
+          self.postMessage({ type:'done', out:out });
+        } catch(e) {
+          self.postMessage({ type:'compileError', msg:e.message });
+        }
+      };
+    `;
+
+    const blob    = new Blob([workerSrc], { type:'application/javascript' });
+    const blobURL = URL.createObjectURL(blob);
+    const worker  = new Worker(blobURL);
+    _activeWorker = worker;
+    showStopButton(true);
+
+    // 8-second TLE
+    const tleTimer = setTimeout(() => {
+      if (_activeWorker === worker) {
+        worker.terminate(); _activeWorker = null;
+        URL.revokeObjectURL(blobURL); showStopButton(false);
+        resolve({ compileErr:'', compileCode:0, runOut:'',
+          runErr:'⏱ Time Limit Exceeded (8s)\nYour code ran too long — likely O(n²) or infinite loop.',
+          runCode:124, engine:'Browser Interpreter (offline)' });
+      }
+    }, 8000);
+
+    function cleanup() {
+      clearTimeout(tleTimer); worker.terminate();
+      _activeWorker = null; URL.revokeObjectURL(blobURL); showStopButton(false);
+    }
+
+    worker.onmessage = (ev) => {
+      const d = ev.data; cleanup();
+      if (d.type === 'done') {
+        resolve({ compileErr:'', compileCode:0, runOut:d.out.join('\n'), runErr:'', runCode:0, engine:'Browser Interpreter (offline)' });
+      } else if (d.type === 'runtimeError') {
+        resolve({ compileErr:'', compileCode:0, runOut:d.partial.join('\n'),
+          runErr:'Runtime error at test '+(d.idx+1)+': '+d.msg, runCode:1, engine:'Browser Interpreter (offline)' });
+      } else {
+        resolve({ compileErr:'error: '+d.msg, compileCode:1, runOut:'', runErr:'', runCode:1, engine:'Browser Interpreter (offline)' });
+      }
+    };
+    worker.onerror = (ev) => { cleanup(); resolve({ compileErr:'error: '+ev.message, compileCode:1, runOut:'', runErr:'', runCode:1, engine:'Browser Interpreter (offline)' }); };
+    worker.postMessage({ fnBody:conv.body, tests });
+  });
+}
+
+// ── C→JS for canCompleteCircuit ────────────────────
+// Key insight: gas[i] and cost[i] array indexing is IDENTICAL in C and JS.
+// So we only need to: (1) strip type declarations, (2) handle for-loop inits.
+// No BigInt needed — all values are small integers.
+function cToJS(raw) {
+  let code = raw.replace(/\/\/[^\n]*/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
+
+  // Find canCompleteCircuit signature (flexible whitespace)
+  const sigRe = /int\s+canCompleteCircuit\s*\(\s*int\s*\*\s*\w+\s*,\s*int\s*\*\s*\w+\s*,\s*int\s+\w+\s*\)/;
+  if (!sigRe.test(code)) return { ok:false, err:"function canCompleteCircuit not found.\nCheck signature: int canCompleteCircuit(int* gas, int* cost, int n)" };
+
+  // Extract body
+  const si = code.search(sigRe);
+  const bs = code.indexOf('{', si);
+  if (bs === -1) return { ok:false, err:"missing '{' in canCompleteCircuit" };
+  let depth=0, idx=bs, end=-1;
+  while (idx < code.length) {
+    if      (code[idx]==='{') depth++;
+    else if (code[idx]==='}') { depth--; if (depth===0) { end=idx; break; } }
+    idx++;
+  }
+  if (end===-1) return { ok:false, err:"unmatched braces in canCompleteCircuit" };
+
+  let body = code.slice(bs+1, end);
+  if (!/\breturn\b/.test(body)) return { ok:false, err:"missing 'return' in canCompleteCircuit" };
+
+  // Strip type declarations — use lookahead so variable names are never cut
+  // 1) for-loop inits: "for (int i" → "for (var i"
+  body = body.replace(/\bfor\s*\(\s*int\s+(?=\w)/g, 'for (var ');
+  // 2) all other int declarations (single or multi-var: "int a = 0, b = 0")
+  body = body.replace(/\bint\s+(?=\w)/g, 'var ');
+
+  // i++ works fine on JS numbers (no BigInt issue here)
+  return { ok:true, body };
+}
+
+// ── ENGINE AUTO-DETECT ─────────────────────────────
+async function detectEngine() {
+  setEnginePill('wait', '⏳ Detecting compiler…');
+  setMsg('Detecting compiler…');
+
+  // 1. Local GCC server
+  try {
+    const r = await fetch(LOCAL_INFO, { signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    if (d.available) {
+      ACTIVE_ENGINE = 'local';
+      setEnginePill('gcc', '✓ ' + d.version.split('\n')[0].trim().slice(0, 40));
+      setMsg('Local GCC/MinGW ready');
+      const b = document.getElementById('gs-setup-overlay'); if (b) b.remove();
+      return;
+    }
+  } catch(_) {}
+
+  // 2. Piston (online GCC)
+  try {
+    const r = await pistonRun('#include<stdio.h>\nint main(){printf("ok");return 0;}', '');
+    if (r.runCode === 0 && r.runOut.trim() === 'ok') {
+      ACTIVE_ENGINE = 'piston';
+      setEnginePill('gcc', '✓ GCC · Piston (online)');
+      setMsg('Online GCC ready (Piston)');
+      const b = document.getElementById('gs-setup-overlay'); if (b) b.remove();
+      return;
+    }
+  } catch(_) {}
+
+  // 3. Wandbox (online GCC)
+  try {
+    const r = await wandboxRun('#include<stdio.h>\nint main(){printf("ok");return 0;}', '');
+    if (r.runCode === 0 && r.runOut.trim() === 'ok') {
+      ACTIVE_ENGINE = 'wandbox';
+      setEnginePill('wan', '✓ GCC · Wandbox (online)');
+      setMsg('Online GCC ready (Wandbox)');
+      const b = document.getElementById('gs-setup-overlay'); if (b) b.remove();
+      return;
+    }
+  } catch(_) {}
+
+  // 4. No GCC available — browser JS interpreter as fallback
+  ACTIVE_ENGINE = 'browser';
+  setEnginePill('jscpp', '⚡ Browser Interpreter (offline)');
+  setMsg('Browser mode ready — real C via server.js for full accuracy');
+}
+
+// ── Setup guide shown when no compiler is found ──────────────
+function showSetupGuide() {
+  if (document.getElementById('gs-setup-overlay')) return;
+  const ov = document.createElement('div');
+  ov.id = 'gs-setup-overlay';
+  ov.innerHTML = `<style>
+#gs-setup-overlay{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);
+  backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px}
+#gs-setup-box{background:linear-gradient(145deg,#0b1220,#07101e);border:1px solid rgba(79,158,255,.3);
+  border-radius:16px;padding:32px 36px;max-width:560px;width:100%;
+  box-shadow:0 0 60px rgba(79,158,255,.12);font-family:'JetBrains Mono',monospace;color:#dce8f8;
+  max-height:90vh;overflow-y:auto}
+#gs-setup-box h2{font-size:1.1rem;color:#ff5555;letter-spacing:2px;margin-bottom:6px;font-family:'Outfit',sans-serif}
+#gs-setup-box .sub{font-size:11px;color:#607898;letter-spacing:1px;margin-bottom:22px}
+#gs-setup-box .step{display:flex;gap:13px;margin-bottom:18px;align-items:flex-start}
+#gs-setup-box .snum{flex-shrink:0;width:26px;height:26px;border-radius:50%;
+  background:rgba(79,158,255,.15);border:1px solid rgba(79,158,255,.3);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#4f9eff}
+#gs-setup-box .sbody{flex:1;font-size:12px;line-height:1.8;color:#a0bcd8}
+#gs-setup-box .sbody strong{color:#dce8f8}
+#gs-setup-box .sbody code{background:rgba(79,158,255,.1);border:1px solid rgba(79,158,255,.2);
+  padding:2px 8px;border-radius:4px;font-size:11.5px;color:#79c0ff}
+#gs-setup-box .cmd{background:rgba(0,0,0,.5);border:1px solid rgba(79,158,255,.2);border-radius:6px;
+  padding:9px 14px;margin:7px 0;font-size:12px;color:#30d474;display:block;letter-spacing:.5px}
+#gs-setup-box .divider{height:1px;background:rgba(79,158,255,.1);margin:20px 0}
+#gs-setup-box .note{font-size:11px;color:#607898;line-height:1.7;margin-bottom:16px}
+#gs-setup-box .note a{color:#4f9eff;text-decoration:none}
+#gs-setup-box .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+#gs-setup-box .btn-retry{flex:1;padding:11px 20px;background:rgba(79,158,255,.08);
+  border:1px solid rgba(79,158,255,.3);border-radius:8px;color:#4f9eff;
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+  letter-spacing:2px;cursor:pointer;transition:all .2s}
+#gs-setup-box .btn-retry:hover{background:rgba(79,158,255,.18)}
+#gs-setup-box .btn-ok{flex:1;padding:11px 20px;
+  background:linear-gradient(135deg,rgba(48,212,116,.18),rgba(48,212,116,.08));
+  border:1px solid rgba(48,212,116,.4);border-radius:8px;color:#30d474;
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+  letter-spacing:2px;cursor:pointer;transition:all .2s}
+#gs-setup-box .btn-ok:hover{background:rgba(48,212,116,.25)}
+</style>
+<div id="gs-setup-box">
+  <h2>⚠ NO GCC COMPILER FOUND</h2>
+  <div class="sub">SERVER RUNNING — GCC (MINGW) NOT INSTALLED OR NOT IN PATH</div>
+  <div class="step"><div class="snum">1</div><div class="sbody">
+    <strong>Download MinGW (WinLibs — free &amp; open source)</strong><br>
+    Go to <a href="https://winlibs.com" target="_blank">https://winlibs.com</a>
+    and download <strong>GCC 13.x Win64 — without LLVM → .zip</strong>
+  </div></div>
+  <div class="step"><div class="snum">2</div><div class="sbody">
+    <strong>Extract to C:\\mingw64</strong><br>
+    Unzip so you have: <code>C:\\mingw64\\bin\\gcc.exe</code>
+  </div></div>
+  <div class="step"><div class="snum">3</div><div class="sbody">
+    <strong>Restart the server</strong><br>
+    Press <code>Ctrl+C</code> in your terminal, then:<br>
+    <span class="cmd">node server.js</span>
+    You should see: <code>GCC OK : gcc (x86_64-posix-seh...) 13.x.x</code>
+  </div></div>
+  <div class="step"><div class="snum">4</div><div class="sbody">
+    <strong>Reload this page</strong><br>
+    Press <code>F5</code> or click Retry. Engine pill turns green: <code style="color:#30d474">✓ GCC · Local</code>
+  </div></div>
+  <div class="divider"></div>
+  <div class="note">
+    <strong style="color:#dce8f8">MinGW already installed elsewhere?</strong><br>
+    <span class="cmd">set GCC_PATH=C:\\your-folder\\bin\\gcc.exe &amp;&amp; node server.js</span>
+    Auto-detected: MSYS2, Chocolatey, Scoop, Code::Blocks, Dev-C++, CLion, VS Code extension.<br><br>
+    <strong style="color:#dce8f8">No internet + no MinGW?</strong>
+    Connect to the internet — Piston/Wandbox online GCC will be used automatically.
+  </div>
+  <div class="btns">
+    <button class="btn-retry" onclick="document.getElementById('gs-setup-overlay').remove();setEnginePill('wait','⏳ Retrying…');detectEngine();">↺ RETRY</button>
+    <button class="btn-ok" onclick="document.getElementById('gs-setup-overlay').remove()">✕ DISMISS</button>
+  </div>
+</div>`;
+  document.body.appendChild(ov);
+}
+
+async function compileAndRun(code, stdin) {
+  _abortCtrl = new AbortController();
+  const sig  = _abortCtrl.signal;
+  showStopButton(true);
+
+  // Direct browser engine shortcut
+  if (ACTIVE_ENGINE === 'browser') {
+    showStopButton(false);
+    return await browserRun(code, stdin);
+  }
+
+  try {
+    // Always retry local first — don't permanently downgrade on a single failure
+    if (ACTIVE_ENGINE === 'local') {
+      try {
+        const r = await localGCCRun(code, stdin, sig);
+        showStopButton(false); return r;
+      } catch(e) {
+        if (e.name === 'AbortError') { showStopButton(false); throw e; }
+        setEnginePill('wan', '⚡ Local unavailable — trying Piston…');
+      }
+    }
+    if (ACTIVE_ENGINE === 'local' || ACTIVE_ENGINE === 'piston') {
+      try {
+        const r = await pistonRun(code, stdin, sig);
+        showStopButton(false);
+        if (ACTIVE_ENGINE !== 'piston') setEnginePill('gcc', '⚡ GCC · Piston (online)');
+        return r;
+      } catch(e) {
+        if (e.name === 'AbortError') { showStopButton(false); throw e; }
+        setEnginePill('wan', '⚡ Falling back to Wandbox…');
+      }
+    }
+    if (ACTIVE_ENGINE === 'local' || ACTIVE_ENGINE === 'piston' || ACTIVE_ENGINE === 'wandbox') {
+      try {
+        const r = await wandboxRun(code, stdin, sig);
+        showStopButton(false);
+        if (ACTIVE_ENGINE !== 'wandbox') setEnginePill('wan', '⚡ GCC · Wandbox (online)');
+        return r;
+      } catch(e) {
+        if (e.name === 'AbortError') { showStopButton(false); throw e; }
+        setEnginePill('wait', '✗ No GCC engine available');
+      }
+    }
+    // Browser JS interpreter — fallback when all GCC engines unreachable
+    showStopButton(false);
+    setEnginePill('jscpp', '⚡ Browser Interpreter (offline)');
+    setMsg('Running in browser…');
+    return await browserRun(code, stdin);
+  } finally {
+    _abortCtrl = null;
+  }
+}
+
+// ═══════════════════════════════════════
+//  COMPLEXITY ANALYSER
+//  Detects O(n) single-pass vs O(n²) nested loops
+//  Also detects O(n) extra space (auxiliary arrays)
+// ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//  COMPLEXITY ANALYSER — CS-002
+//  Returns { timeOn, timeOn2, timeLabel }
+//
+//  O(n)  = single loop, no nesting          → 30 pts
+//  O(n²) = nested loop detected             → 20 pts
+//
+//  ★ KEY FIX: ONLY analyse canCompleteCircuit body.
+//    Checking the full source (s) ALWAYS falsely triggers
+//    O(n²) because main() contains: while(t--){ for(i=0;..) }
+//    which is nested — but that's the test harness, not the student's algorithm.
+// ═══════════════════════════════════════
+function analyseComplexity(code) {
+  const s = code
+    .replace(/\/\/[^\n]*/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // ── Step 1: Extract ONLY canCompleteCircuit body ──────
+  // Everything between the outermost { } of canCompleteCircuit.
+  // main() and global declarations are intentionally excluded.
+  let body = '';
+  const si = s.search(/\bint\s+canCompleteCircuit\s*\(/);
+  if (si !== -1) {
+    const bs = s.indexOf('{', si);
+    if (bs !== -1) {
+      let d = 0, i = bs, e = -1;
+      while (i < s.length) {
+        if      (s[i] === '{') d++;
+        else if (s[i] === '}') { d--; if (d === 0) { e = i; break; } }
+        i++;
+      }
+      if (e !== -1) body = s.slice(bs + 1, e);
+    }
+  }
+
+  // No body found → function not yet written
+  if (!body.trim()) return { timeOn: false, timeOn2: false, timeLabel: 'O(?)' };
+
+  // ── Step 2: Nested-loop detector ──────────────────────
+  // For every for/while found, check if its brace-delimited body
+  // contains another for/while. This correctly identifies O(n²).
+  function hasNestedLoop(src) {
+    const loopRe = /\b(for|while)\s*\(/g;
+    let m; const positions = [];
+    while ((m = loopRe.exec(src)) !== null) positions.push(m.index);
+    if (positions.length < 2) return false;
+    for (const p of positions) {
+      const ob = src.indexOf('{', p);
+      if (ob === -1) continue;
+      let d = 0, i = ob, end = -1;
+      while (i < src.length) {
+        if      (src[i] === '{') d++;
+        else if (src[i] === '}') { d--; if (d === 0) { end = i; break; } }
+        i++;
+      }
+      if (end === -1) continue;
+      if (/\b(for|while)\s*\(/.test(src.slice(ob + 1, end))) return true;
+    }
+    return false;
+  }
+
+  // ── Step 3: Classify ──────────────────────────────────
+  const hasAnyLoop = /\b(for|while)\b/.test(body);
+  // ★ ONLY check body — NOT s/fullSrc (main always has nested loops!)
+  const timeOn2    = hasNestedLoop(body);
+  const timeOn     = hasAnyLoop && !timeOn2;
+
+  return {
+    timeOn, timeOn2,
+    timeLabel : timeOn2 ? 'O(n²)' : timeOn ? 'O(n)' : 'O(?)',
+  };
+}
+
+// ═══════════════════════════════════════
+//  STDIN BUILDER
+//  Format: T\n  n\n  gas...\n  cost...\n  (repeat)
+// ═══════════════════════════════════════
+function buildStdin(cases) {
+  const lines = [String(cases.length)];
+  for (const tc of cases) {
+    lines.push(String(tc.n));
+    lines.push(tc.gas.join(' '));
+    lines.push(tc.cost.join(' '));
+  }
+  return lines.join('\n');
+}
+
+function renderErrors(s) {
+  if (!s) return '';
+  return s.split('\n').filter(l=>l.trim()).map(l => {
+    if (/error:/i.test(l))  return `<div class="gcc-err">${esc(l)}</div>`;
+    if (/warning:/.test(l)) return `<div class="gcc-warn">${esc(l)}</div>`;
+    return `<div class="gcc-note">${esc(l)}</div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  RUN (first 5 cases)
+// ═══════════════════════════════════════
+let _running = false;
+
+async function runCode() {
+  if (_running || ACTIVE_ENGINE === null) return;
+  _running = true;
+  setButtons(true); setMsg('Compiling…');
+  const out = document.getElementById('b-out');
+  out.innerHTML = `<div class="ol"><span class="spin"></span> ${ACTIVE_ENGINE==='browser'?'Analysing with Browser Engine…':'Compiling with GCC…'}</div>`;
+  showTab('b-out');
+  await tick();
+  try {
+    const code  = getCode();
+    const quick = TC.slice(0, 5);
+    const r     = await compileAndRun(code, buildStdin(quick));
+    updateEng(r.engine); out.innerHTML = '';
+    if (r.compileCode !== 0) {
+      out.innerHTML = `<div class="ol own" style="font-weight:700;margin-bottom:5px">⚠ Compilation Error [${esc(r.engine)}]</div>${renderErrors(r.compileErr)}`;
+      _done(); return;
+    }
+    if (r.compileErr) out.innerHTML += `<div class="ol own" style="margin-bottom:4px;font-size:11px">⚠ Warnings</div>${renderErrors(r.compileErr)}<div style="height:6px"></div>`;
+    if (r.runCode !== 0) {
+      if (r.runCode === 124) out.innerHTML += `<div class="tle-box"><strong>⏱ Time Limit Exceeded (8s)</strong><br>${esc(r.runErr)}</div>`;
+      else { out.innerHTML += `<div class="ol oer">Runtime Error (exit ${r.runCode})</div>`;
+             if (r.runErr) out.innerHTML += `<div class="gcc-err">${esc(r.runErr.slice(0,300))}</div>`; }
+      _done(); return;
+    }
+    const lines = (r.runOut||'').split('\n');
+    out.innerHTML += `<div class="ol oi" style="margin-bottom:7px">✓ Compiled [${esc(r.engine)}] — 5 cases</div>`;
+    quick.forEach((tc,i) => {
+      const got = (lines[i]||'').trim(), ok = got===tc.exp;
+      out.innerHTML +=
+        `<div class="ol"><span style="color:var(--tx3)">circuit(n=${tc.n})</span>` +
+        `<span style="color:var(--tx3)"> → </span>` +
+        `<span style="color:${ok?'var(--green)':'var(--red)'}">${esc(got||'(no output)')}</span>` +
+        `<span style="color:var(--tx3);font-size:10.5px"> ${ok?'✓':'✗ expected '+tc.exp}</span></div>`;
+    });
+  } catch(e) {
+    if (e.name==='AbortError') { _done(); return; }
+    document.getElementById('b-out').innerHTML = `<div class="gcc-err">Error: ${esc(e.message)}</div>`;
+  }
+  _done();
+}
+
+// ═══════════════════════════════════════
+//  SUBMIT (all 12 cases + 4-tier scoring)
+// ═══════════════════════════════════════
+async function submitCode() {
+  if (_running || ACTIVE_ENGINE === null) return;
+  _running = true;
+  setButtons(true); setMsg('Judging all ' + TC.length + ' cases…');
+  const tr = document.getElementById('b-tr');
+  tr.innerHTML = buildTR(TC.map(()=>({status:'running',got:''})));
+  showTab('b-tr');
+  await tick();
+  try {
+    const code = getCode();
+    const r    = await compileAndRun(code, buildStdin(TC));
+    updateEng(r.engine);
+
+    if (r.compileCode !== 0) {
+      tr.innerHTML = `<div class="ol own" style="font-weight:700;margin-bottom:6px">⚠ Compilation Error</div>${renderErrors(r.compileErr)}`;
+      showWrong('COMPILATION FAILED — 0 MARKS', r.compileErr.slice(0,600));
+      _done(); return;
+    }
+    if (r.runCode !== 0) {
+      const isTLE = r.runCode === 124;
+      tr.innerHTML = isTLE
+        ? `<div class="tle-box"><strong>⏱ Time Limit Exceeded</strong><br>${esc(r.runErr)}</div>`
+        : buildTR(TC.map(()=>({status:'fail',got:'runtime error'})));
+      showWrong(
+        isTLE ? '⏱ TIME LIMIT EXCEEDED — likely O(n²) — 0 MARKS' : 'RUNTIME ERROR — 0 MARKS',
+        isTLE ? r.runErr : `Exit: ${r.runCode}\n${(r.runErr||'').slice(0,300)}`
+      );
+      _done(); return;
+    }
+
+    const lines   = (r.runOut||'').split('\n');
+    const results = TC.map((tc,i)=>{ const got=(lines[i]||'').trim(); return {status:got===tc.exp?'pass':'fail',got}; });
+    tr.innerHTML  = buildTR(results);
+    if (r.compileErr) tr.innerHTML = `<div class="gcc-warn" style="margin-bottom:5px">⚠ ${esc(r.compileErr.split('\n')[0])}</div>`+tr.innerHTML;
+
+    const allPass = results.every(r=>r.status==='pass');
+    if (!allPass) {
+      const fi = results.findIndex(r=>r.status==='fail');
+      showWrong('OUTPUT MISMATCH — 0 MARKS',
+        `Failed: n=${TC[fi].n}\nExpected : ${TC[fi].exp}\nGot      : ${results[fi].got||'(no output)'}`);
+      _done(); return;
+    }
+
+    // ── All 12 passed — determine tier ──────────────
+    const cx = analyseComplexity(code);
+    setChip(cx);
+
+    if (cx.timeOn) {
+      // ★ TIER 1: 30/30 — O(n) greedy
+      const pts = Math.max(0, 30 - hintPenalty);
+      updateScore(pts);
+      document.getElementById('key-perfect').textContent  = genKey();
+      document.getElementById('perfect-score').textContent = pts;
+      const ded = document.getElementById('perfect-deduct');
+      if (hintPenalty>0){ ded.style.display='block'; ded.textContent=`−${hintPenalty} pts (${hintsRevealed} hint${hintsRevealed>1?'s':''})`; }
+      else ded.style.display='none';
+      showModal('m-perfect');
+
+    } else {
+      // ★ TIER 2: 20/30 — O(n²) or any other correct approach
+      showModal('m-partial');
+    }
+
+  } catch(e) {
+    if (e.name==='AbortError') { _done(); return; }
+    document.getElementById('b-tr').innerHTML = `<div class="gcc-err">Error: ${esc(e.message)}</div>`;
+  }
+  _done();
+}
+
+function acceptPartial() {
+  closeM('m-partial'); updateScore(20);
+  document.getElementById('key-partial').textContent = genKey();
+  showModal('m-partial-done');
+}
+function showWrong(sub, msg) {
+  document.getElementById('wrong-sub').textContent = sub;
+  document.getElementById('wrong-msg').textContent = msg;
+  showModal('m-wrong');
+}
+
+// ═══════════════════════════════════════
+//  RESULTS TABLE
+// ═══════════════════════════════════════
+function buildTR(results) {
+  let h = '<div class="trg">';
+  ['#','Test Case','Expected','Got','Status'].forEach(c => h += `<div class="trh">${c}</div>`);
+  TC.forEach((tc,i) => {
+    const r   = results[i] || {status:'pending',got:''};
+    const col = r.status==='pass'?'var(--green)':r.status==='fail'?'var(--red)':r.status==='running'?'var(--blue)':'var(--tx3)';
+    const ico = r.status==='pass'?'✓':r.status==='fail'?'✗':r.status==='running'?'◌':'—';
+    h += `<div style="display:contents">
+      <div class="trc" style="color:var(--tx3);justify-content:center">${i+1}</div>
+      <div class="trc" style="gap:5px">
+        <span style="color:var(--tx2);font-size:11px">n=${tc.n}</span>
+        <span style="font-size:10px;color:var(--tx3)">[${tc.cat}]</span>
+      </div>
+      <div class="trc" style="color:${tc.exp==='-1'?'var(--red)':'var(--green)'};font-size:11px">${tc.exp}</div>
+      <div class="trc" style="color:${col};font-size:11px">${esc(r.got||'—')}</div>
+      <div class="trc" style="color:${col};font-weight:700;justify-content:center">${ico}</div>
+    </div>`;
+  });
+  return h + '</div>';
+}
+
+// ═══════════════════════════════════════
+//  HINTS
+// ═══════════════════════════════════════
+let hintsUnlocked=1, hintsRevealed=0, hintPenalty=0, pendingHint=0;
+const hintRevealed=[false,false,false];
+
+function revHint(n) {
+  if (n > hintsUnlocked) return;
+  const body = document.getElementById('hb'+n);
+  const open = body.classList.contains('open');
+  if (hintRevealed[n-1]) {
+    body.classList.toggle('open',!open);
+    document.getElementById('ht'+n).textContent = open ? '▶ Show' : '▼ Hide';
+    return;
+  }
+  pendingHint = n;
+  const before = 30-hintPenalty, after = Math.max(0,before-5);
+  document.getElementById('hc-title').textContent = 'Use Hint '+n+'?';
+  document.getElementById('hc-before').textContent = before;
+  document.getElementById('hc-after').textContent  = after;
+  document.getElementById('hc-after').style.color  = after<6?'var(--red)':'var(--ora)';
+  document.getElementById('hc-confirm-btn').onclick = ()=>confirmHint(pendingHint);
+  showModal('m-hint-confirm');
+}
+
+function confirmHint(n) {
+  closeM('m-hint-confirm');
+  hintPenalty+=5; hintsRevealed++; hintRevealed[n-1]=true;
+  const c = document.getElementById('hcost'+n);
+  if(c){ c.textContent='−5 pts ✓'; c.style.background='rgba(48,212,116,.07)'; c.style.color='var(--tx3)'; c.style.borderColor='rgba(48,212,116,.15)'; }
+  document.getElementById('hb'+n).classList.add('open');
+  document.getElementById('ht'+n).textContent='▼ Hide';
+  document.getElementById('hc'+n).classList.add('on');
+  if(n===hintsUnlocked&&n<3){ hintsUnlocked=n+1; document.getElementById('hc'+(n+1)).classList.remove('lock'); document.getElementById('ht'+(n+1)).textContent='▶ Reveal'; }
+  const mx = Math.max(0,30-hintPenalty);
+  document.getElementById('hints-used').textContent = hintsRevealed+' / 3';
+  const mp = document.getElementById('max-pts');
+  mp.textContent = mx; mp.style.color = hintPenalty===0?'var(--green)':hintPenalty<9?'var(--ora)':'var(--red)';
+  document.getElementById('score-badge').textContent = '0 / '+mx+' pts';
+}
+
+// ═══════════════════════════════════════
+//  KEY MODAL
+// ═══════════════════════════════════════
+function openKeyModal() {
+  const inp = document.getElementById('key-input-field');
+  inp.value=''; inp.classList.remove('wrong','shake');
+  document.getElementById('key-input-msg').textContent='';
+  showModal('m-key-entry');
+  setTimeout(()=>inp.focus(),80);
+}
+
+function submitKey() {
+  const inp = document.getElementById('key-input-field');
+  const val = inp.value.trim().toUpperCase().replace(/\s+/g,'');
+  const msg = document.getElementById('key-input-msg');
+  const norm = val.replace(/[-\s]/g,'');
+  if (norm==='CS003') {
+    closeM('m-key-entry'); updateScore(0); showModal('m-key-zero');
+  } else if (val==='') {
+    msg.textContent='Please enter a key.';
+  } else {
+    inp.classList.add('wrong'); void inp.offsetWidth; inp.classList.add('shake');
+    msg.textContent='✗ Invalid key — check your input.';
+    setTimeout(()=>inp.classList.remove('shake'),450);
+  }
+}
+
+// ═══════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════
+function setEnginePill(cls, txt) {
+  const p = document.getElementById('engine-pill');
+  p.className = cls;
+  p.innerHTML = `<span class="epulse"></span><span>${esc(txt)}</span>`;
+}
+
+let editor;
+window.addEventListener('load', () => {
+  editor = CodeMirror.fromTextArea(document.getElementById('cm-src'), {
+    mode:'text/x-csrc', lineNumbers:true, matchBrackets:true,
+    autoCloseBrackets:true, styleActiveLine:true,
+    indentUnit:4, tabSize:4, indentWithTabs:false, lineWrapping:false,
+    extraKeys:{
+      'Ctrl-/':'toggleComment',
+      'Tab': cm=>cm.execCommand('indentMore'),
+      'Shift-Tab': cm=>cm.execCommand('indentLess'),
+    },
+  });
+  editor.setValue(TMPL);
+  editor.refresh();
+  detectEngine();
+});
+
+const getCode  = () => editor ? editor.getValue() : '';
+const tick     = () => new Promise(r => setTimeout(r, 20));
+function resetCode() { editor && editor.setValue(TMPL); clearChip(); }
+function copyCode()  { navigator.clipboard.writeText(getCode()).catch(()=>{}); }
+
+function stab(b,id) {
+  ['t-desc','t-tc','t-hint'].forEach(t=>document.getElementById(t).style.display='none');
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+}
+function sbtab(b,id) {
+  ['b-out','b-tr'].forEach(t=>document.getElementById(t).style.display='none');
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.btab').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+}
+function showTab(id) {
+  ['b-out','b-tr'].forEach(t=>document.getElementById(t).style.display=t===id?'block':'none');
+  document.querySelectorAll('.btab').forEach((b,i)=>b.classList.toggle('on',['b-out','b-tr'][i]===id));
+}
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeM(id)    { document.getElementById(id).classList.remove('show'); }
+function updateScore(p){ document.getElementById('score-badge').textContent=p+' / 30 pts'; }
+window.updateScore = updateScore;
+function genKey() { return 'CS003-'+Date.now().toString(36).toUpperCase().slice(-6)+'-'+Math.random().toString(36).slice(2,6).toUpperCase(); }
+
+function setButtons(d) {
+  document.getElementById('btn-run').disabled=d;
+  document.getElementById('btn-sub').disabled=d;
+  document.getElementById('btn-key').disabled=d;
+  document.getElementById('btn-run').innerHTML = d ? '<span class="spin"></span> Compiling' : '<i class="fa-solid fa-play"></i> Run';
+  document.getElementById('btn-sub').innerHTML = d ? '<span class="spin"></span> Judging'   : '<i class="fa-solid fa-paper-plane"></i> Submit';
+}
+function _done()    { setMsg('Ready'); setButtons(false); showStopButton(false); _running=false; }
+function setMsg(m)  { document.getElementById('sb-msg').textContent=m; }
+function updateEng(l){ document.getElementById('sb-engine').textContent=l; }
+
+function setChip(cx) {
+  const c = document.getElementById('cxchip');
+  if (cx.timeOn) {
+    c.className = 's15';
+    c.innerHTML = '<i class="fa-solid fa-bolt"></i> O(n) Single-Pass — 30 pts';
+  } else if (cx.timeOn2) {
+    c.className = 's3';
+    c.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> O(n²) Nested Loop — 20 pts';
+  } else {
+    c.className = 's3';
+    c.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No loop found';
+  }
+}
+function clearChip(){ const c=document.getElementById('cxchip'); c.className=''; c.textContent=''; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Resizer
+(function(){
+  const rsz=document.getElementById('rsz'), lp=document.getElementById('left'); let drag=false;
+  rsz.addEventListener('mousedown',e=>{ drag=true; rsz.classList.add('dragging'); document.body.style.cssText='cursor:col-resize;user-select:none'; e.preventDefault(); });
+  document.addEventListener('mousemove',e=>{ if(!drag)return; const rect=document.getElementById('app').getBoundingClientRect(); const w=e.clientX-rect.left; if(w>220&&w<rect.width-280){ lp.style.width=w+'px'; editor&&editor.refresh(); } });
+  document.addEventListener('mouseup',()=>{ if(drag){ drag=false; rsz.classList.remove('dragging'); document.body.style.cssText=''; } });
+})();
+window.addEventListener('resize',()=>editor&&editor.refresh());
+</script>
+<script src="cs003_nav_patch.js"></script>
+</body>
+</html>

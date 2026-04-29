@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXIT-VO.O | Landing</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="../gameState.js"></script>
+<style>
+/* ── Player Registration Modal ─────────────────────────── */
+#gs-modal{display:none;position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,.92);backdrop-filter:blur(10px);
+  justify-content:center;align-items:center}
+#gs-modal.open{display:flex}
+.gs-box{background:linear-gradient(145deg,rgba(10,3,0,.98),rgba(28,8,0,.98));
+  border:1px solid rgba(255,69,0,.5);border-radius:18px;
+  padding:42px 48px;width:92%;max-width:420px;text-align:center;
+  box-shadow:0 0 70px rgba(255,69,0,.18),0 0 140px rgba(255,69,0,.07);
+  animation:gsIn .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes gsIn{from{transform:scale(.85) translateY(30px);opacity:0}to{transform:scale(1);opacity:1}}
+.gs-title{font-family:'Creepster',cursive;font-size:2.1rem;color:#ff5500;
+  letter-spacing:4px;margin-bottom:4px;text-shadow:0 0 22px rgba(255,85,0,.6)}
+.gs-sub{font-family:'Share Tech Mono',monospace;font-size:.65rem;
+  color:rgba(255,140,80,.65);letter-spacing:3px;margin-bottom:28px}
+.gs-field{margin-bottom:16px;text-align:left}
+.gs-field label{display:block;font-family:'Share Tech Mono',monospace;font-size:.62rem;
+  letter-spacing:2.5px;color:rgba(255,90,30,.8);margin-bottom:7px;text-transform:uppercase}
+.gs-field input{width:100%;background:rgba(0,0,0,.65);border:1px solid rgba(255,69,0,.35);
+  border-radius:8px;color:#ffe0c0;font-family:'Share Tech Mono',monospace;font-size:.95rem;
+  padding:12px 15px;outline:none;transition:.2s}
+.gs-field input:focus{border-color:#ff4500;box-shadow:0 0 14px rgba(255,69,0,.3)}
+.gs-field input::placeholder{color:rgba(255,120,60,.22)}
+#gs-err{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:#ff4444;
+  min-height:18px;margin-bottom:10px;letter-spacing:1px}
+.gs-go{width:100%;padding:14px;background:linear-gradient(135deg,#b82d00,#ff4500);
+  border:none;border-radius:10px;color:#fff;font-family:'Share Tech Mono',monospace;
+  font-size:.92rem;font-weight:700;letter-spacing:3px;cursor:pointer;
+  transition:.22s;box-shadow:0 0 18px rgba(255,69,0,.3)}
+.gs-go:hover{transform:scale(1.03);box-shadow:0 0 32px rgba(255,69,0,.55)}
+
+/* ── Registered player greeting banner ─────────────────── */
+#gs-greeting{display:none;margin-bottom:16px;padding:10px 14px;
+  background:rgba(255,85,0,.07);border:1px solid rgba(255,85,0,.2);
+  border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:.68rem;
+  letter-spacing:1.5px;color:rgba(255,180,100,.8);text-align:left;line-height:1.8}
+
+/* ── Utility buttons ───────────────────────────────────── */
+#gs-reset{position:fixed;bottom:14px;right:18px;background:rgba(30,0,0,.6);
+  border:1px solid rgba(255,40,40,.3);color:rgba(255,80,80,.6);
+  font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:1.5px;
+  padding:5px 13px;border-radius:6px;cursor:pointer;z-index:100;transition:.2s}
+#gs-reset:hover{background:rgba(255,30,30,.2);color:#ff4444;border-color:#ff4444}
+#gs-conductor-link{position:fixed;bottom:14px;left:18px;
+  background:rgba(0,30,60,.6);border:1px solid rgba(40,120,255,.3);
+  color:rgba(80,160,255,.65);font-family:'Share Tech Mono',monospace;
+  font-size:.62rem;letter-spacing:1.5px;padding:5px 13px;border-radius:6px;
+  cursor:pointer;z-index:100;transition:.2s;text-decoration:none;display:inline-block}
+#gs-conductor-link:hover{background:rgba(40,120,255,.15);color:#4f9eff;border-color:#4f9eff}
+</style>
+</head>
+<body>
+
+<div id="score-board">CREDITS: <span id="cr-val">100</span></div>
+
+<div class="background-container">
+  <canvas id="matrixCanvas"></canvas>
+  <div class="content-overlay">
+    <h1 class="main-title">EXIT-VO.O</h1>
+    <p class="subtitle">Decode. Escape. Survive.</p>
+    <div class="rules-box">
+      <div class="rules-header">GAME RULES</div>
+      <div class="rules-content custom-scrollbar">
+        <p><strong>🗺️ Room Order:</strong></p>
+        <ul><li>Mystery Room 1 → CS-001 → Mystery Room 2 → CS-002 → Mystery Room 3 → CS-003 → Results</li></ul>
+        <p><strong>📊 Scoring:</strong></p>
+        <ul>
+          <li>Game starts at <strong>100 points</strong> — bonus points at the beginning.</li>
+          <li>Hint usage: <strong>−3 pts</strong> per hint.</li>
+          <li>Clearing Mystery Room 1: <strong>+20 pts</strong> bonus.</li>
+          <li>Clearing Mystery Room 2: <strong>+25 pts</strong> bonus.</li>
+          <li>Clearing Mystery Room 3: <strong>+40 pts</strong> bonus.</li>
+          <li>CS-001 coding score: up to <strong>+15 pts</strong>.</li>
+          <li>CS-002 coding score: up to <strong>+20 pts</strong>.</li>
+          <li>CS-003 coding score: up to <strong>+30 pts</strong>.</li>
+        </ul>
+        <p><strong>⏱️ Timer:</strong></p>
+        <ul>
+          <li>Starts when you enter Mystery Room 1. Stops at the result screen.</li>
+          <li>Tiebreaker: lower time wins.</li>
+        </ul>
+        <p><strong>📌 Rules:</strong></p>
+        <ul>
+          <li>Wrong answers fail silently .</li>
+          <li>Use the <strong>■ STOP</strong> button in the HUD anytime to go to results.</li>
+        </ul>
+      </div>
+
+      <!-- Greeting shown when player already registered via shell -->
+      <div id="gs-greeting"></div>
+
+      <!-- START button — behaviour depends on registration state -->
+      <button id="startBtn" class="start-btn">START ADVENTURE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Player Registration Modal (fallback for direct access) ── -->
+<div id="gs-modal">
+  <div class="gs-box">
+    <div class="gs-title">ENTER THE VOID</div>
+    <div class="gs-sub">◈ REGISTER YOUR IDENTITY ◈</div>
+    <div class="gs-field">
+      <label>Student USN</label>
+      <input type="text" id="gs-usn" placeholder="e.g. 1XX23CS001" maxlength="20" autocomplete="off" autocapitalize="characters">
+    </div>
+    <div class="gs-field">
+      <label>Full Name</label>
+      <input type="text" id="gs-name" placeholder="Your full name" maxlength="60" autocomplete="off">
+    </div>
+    <div id="gs-err"></div>
+    <button class="gs-go" onclick="gsSubmit()">⚡ BEGIN THE CHALLENGE</button>
+  </div>
+</div>
+
+<button id="gs-reset" onclick="gsReset()">↺ RESET</button>
+<!-- Conductor link points to /conductor (password-protected server route) -->
+<a id="gs-conductor-link" href="/conductor" target="_blank">🎓 CONDUCTOR</a>
+
+<script src="script.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   main1screen/index.html  —  Game entry & rules screen
+
+   PRIORITY LOGIC:
+   1. If player data already exists in localStorage (registered via
+      the shell Index.html) → skip modal, show greeting, go straight
+      to Mroom1 when START is clicked.
+   2. If no player data (direct browser access) → open registration
+      modal, then go to Mroom1 after submission.
+
+   This file is normally loaded inside the shell's <iframe>.
+   The shell's Index.html handles socket.io registration separately.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Live score display ── */
+try {
+  const sc = parseInt(localStorage.getItem('gx_score') || '100', 10);
+  const el = document.getElementById('cr-val');
+  if (el) el.textContent = sc;
+  // Keep live via GS HUD if available
+} catch(e) {}
+
+/* ── Check existing registration ── */
+const _existingName = localStorage.getItem('gx_name');
+const _existingUSN  = localStorage.getItem('gx_usn');
+const _isRegistered = !!(_existingName && _existingUSN);
+
+if (_isRegistered) {
+  /* Player came through the shell — show greeting, skip modal */
+  const greeting = document.getElementById('gs-greeting');
+  if (greeting) {
+    greeting.style.display = 'block';
+    greeting.innerHTML =
+      '👤 ' + _existingName + '<br>' +
+      '🪪 ' + _existingUSN;
+  }
+  document.getElementById('startBtn').textContent = '▶ START THE CHALLENGE';
+}
+
+/* ── Start button handler ── */
+document.getElementById('startBtn').addEventListener('click', function () {
+  if (_isRegistered) {
+    /* Already registered → start directly */
+    launchGame();
+  } else {
+    /* No registration → open modal */
+    document.getElementById('gs-modal').classList.add('open');
+    setTimeout(() => document.getElementById('gs-usn').focus(), 150);
+  }
+});
+
+/* ── Modal submission (fallback / direct access) ── */
+function gsSubmit() {
+  const usn  = (document.getElementById('gs-usn').value  || '').trim().toUpperCase();
+  const name = (document.getElementById('gs-name').value || '').trim();
+  const err  = document.getElementById('gs-err');
+
+  if (!usn)  { err.textContent = '⚠ USN IS REQUIRED';  return; }
+  if (!name) { err.textContent = '⚠ NAME IS REQUIRED'; return; }
+  err.textContent = '';
+
+  /* Initialise fresh game state via GS */
+  if (typeof GS !== 'undefined') {
+    GS.initPlayer(name, usn);
+  } else {
+    /* Fallback if GS not loaded */
+    localStorage.setItem('gx_name',     name);
+    localStorage.setItem('gx_usn',      usn);
+    localStorage.setItem('gx_score',    '100');
+    localStorage.setItem('gx_log',      '{}');
+    localStorage.setItem('gx_progress', '0');
+    localStorage.removeItem('gx_start');
+    localStorage.removeItem('gx_end');
+  }
+
+  document.getElementById('gs-modal').classList.remove('open');
+  launchGame();
+}
+
+/* ── Navigate to first room ── */
+function launchGame() {
+  document.body.style.transition = 'opacity 0.5s ease';
+  document.body.style.opacity    = '0';
+  setTimeout(function () {
+    window.location.href = '../Mroom1/room1.html';
+  }, 500);
+}
+
+/* ── Reset ── */
+function gsReset() {
+  if (confirm('Reset all game data? This cannot be undone.')) {
+    if (typeof GS !== 'undefined') {
+      GS.reset ? GS.reset() : null;
+    }
+    ['gx_name','gx_usn','gx_score','gx_log','gx_progress','gx_start','gx_end']
+      .forEach(k => localStorage.removeItem(k));
+    location.reload();
+  }
+}
+
+/* ── Keyboard shortcut for modal ── */
+['gs-usn', 'gs-name'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') gsSubmit();
+  });
+});
+</script>
+</body>
+</html>

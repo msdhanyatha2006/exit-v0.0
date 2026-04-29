@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Techno-Horror Pro: 100 Doors</title>
+  <link rel="stylesheet" href="room_style1.css">
+  <link rel="stylesheet" href="gs-hud.css">
+  <!--
+    gameState.js MUST load first in <head> so GS is available
+    before any inline onclick="" attributes fire.
+  -->
+  <script src="gameState.js"></script>
+</head>
+<body>
+
+  <div id="score-board">CREDITS: <span id="cr-val">100</span></div>
+  <div id="notification">SYSTEM ALERT</div>
+
+  <div id="game-container">
+    <div class="hotspot" id="robot-trigger"  onclick="openLvl('robot')"></div>
+    <div class="hotspot" id="fridge-trigger" onclick="openLvl('fridge')"></div>
+    <div class="hotspot" id="vr-trigger"     onclick="openLvl('vr')"></div>
+    <div class="hotspot" id="note-trigger"   onclick="openLvl('note')"></div>
+    <div class="hotspot" id="guitar-trigger" onclick="openLvl('guitar')"></div>
+    <div class="hotspot" id="pot-trigger"    onclick="openLvl('final')"></div>
+  </div>
+
+  <!-- FRIDGE -->
+  <div id="modal-fridge" class="overlay">
+    <img src="Image2.jpg" class="overlay-img" id="img-fridge">
+    <div class="glass-panel" id="ui-fridge">
+      <button class="hint-btn" onclick="getHint('fridge')">HINT</button>
+      <h2 class="horror-title">FRIDGE LOCK</h2>
+      <div id="fridge-disp" class="display-led">_ _ _</div>
+      <div class="advanced-numpad" id="num-pad"></div>
+    </div>
+    <button class="pro-back-btn" onclick="closeLvl()">BACK</button>
+  </div>
+
+  <!-- ROBOT -->
+  <div id="modal-robot" class="overlay">
+    <img src="Image8.jpg" class="overlay-img">
+    <div class="pro-glass-panel" id="ui-robot">
+      <button class="hint-btn" onclick="getHint('robot')">HINT</button>
+      <h2 class="horror-title">I LOVE COLOUR</h2>
+      <div class="shapes-container">
+        <button class="pro-btn" onclick="inRobot('X')">✕</button>
+        <button class="pro-btn" onclick="inRobot('Circle')">◯</button>
+        <button class="pro-btn" onclick="inRobot('Triangle')">△</button>
+        <button class="pro-btn" onclick="inRobot('Rectangle')">▭</button>
+      </div>
+    </div>
+    <div id="robot-riddle" style="display:none;position:absolute;color:cyan;
+         background:black;padding:20px;border:1px solid cyan;"></div>
+    <button class="pro-back-btn" onclick="closeLvl()">BACK</button>
+  </div>
+
+  <!-- GUITAR -->
+  <div id="modal-guitar" class="overlay">
+    <img src="Image9.jpg" class="overlay-img">
+    <div class="pro-glass-panel" id="ui-guitar">
+      <button class="hint-btn" onclick="getHint('guitar')">HINT</button>
+      <h1 class="horror-title">Guitar Strings</h1>
+      <p class="horror-subtext">
+        What are the names of the six strings in standard tuning,
+        starting from the thickest (6th) to the thinnest (1st)?
+        <h5 style="margin-top:10px;font-size:0.8em;color:cyan;">(Hint: it's a common mnemonic in music...present on piece of paper)</h5>
+      </p>
+      <input type="text" id="gt-in" class="pro-input-field" placeholder="EADGBE">
+      <button class="pro-submit-btn" onclick="checkGt()">Submit</button>
+    </div>
+    <div id="gt-success" class="clarity-box">
+      <img src="Image10.jpg">
+    </div>
+    <button class="pro-back-btn" onclick="closeLvl()">BACK</button>
+  </div>
+
+  <!-- VR -->
+  <div id="modal-vr" class="overlay">
+    <img src="Image7.jpg" class="overlay-img" id="img-vr">
+    <div class="hint" id="ui-vr">
+      <button class="hint-btn" onclick="getHint('vr')">HINT</button>
+      <h2 class="horror-title">OPTIC SYNC</h2>
+      <div class="colors-container">
+        <div class="dot yel-glow" onclick="inVR('Yellow')"></div>
+        <div class="dot org-glow" onclick="inVR('Orange')"></div>
+        <div class="dot grn-glow" onclick="inVR('Green')"></div>
+        <div class="dot blu-glow" onclick="inVR('Dark Blue')"></div>
+      </div>
+    </div>
+    <div id="vr-success" class="full-view-box">
+      <img src="Image5.jpg">
+    </div>
+    <button class="pro-back-btn" onclick="closeLvl()">BACK</button>
+  </div>
+
+  <!-- NOTE (read-only) -->
+  <div id="modal-note" class="overlay">
+    <div class="pro-glass-panel"><img src="Image4.jpg" style="width:100%;"></div>
+    <button class="pro-back-btn" onclick="closeLvl()">BACK</button>
+  </div>
+
+  <!-- FINAL (win state) -->
+  <div id="modal-final" class="overlay">
+    <img src="Image6.jpg" class="overlay-img">
+    <h1 id="win-txt" class="horror-title" style="display:none;position:absolute;">KEY FOUND</h1>
+  </div>
+
+  <!--
+    SCRIPT LOAD ORDER — critical:
+    1. gameState.js  already loaded in <head>
+    2. room1_script.js  defines getHint(), inFridge(), etc.
+    3. room1_nav_patch.js  wraps getHint() and watches modal-final
+  -->
+  <script src="room1_script.js"></script>
+  <script src="room1_nav_patch.js"></script>
+
+</body>
+</html>
